@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import GptClient from "./gpt/gpt.service";
+import { Context } from "telegraf";
 
 const app = express();
 const port = 3000;
@@ -17,9 +18,33 @@ app.listen(port, () => {
   // Inicjalizacja bota Telegram
   const bot = new Telegraf(telegramApiKey);
   const gptClient = new GptClient();
+
+  // Obsługa komendy start
+  bot.start((ctx: Context) => {
+    // Pobierz imię użytkownika
+    const userName = ctx.from?.first_name;
+
+    // Wyślij wiadomość powitalną
+    ctx.reply(`Witaj ${userName}! Dziękujemy, że dołączyłeś do naszego czatu.`);
+  });
+
+  // ???
+
+  // setInterval(async (ctx: Context) => {
+  //   //const users = await bot.telegram.getChatMembersCount();
+  //   const message = `Elo`;
+  //   await bot.telegram.sendMessage(ctx.chat?.id, message);
+  // }, 5000); // 5 sekund w milisekundach
+
+  //
+
+  // Obsługa wiadomości od użytkowników
+  let chatId: any;
+
   // Obsługa wiadomości od użytkowników
   bot.on("text", async (ctx: any) => {
     const userMessage = ctx.message.text;
+
     // Wywołaj ChatGPT, aby uzyskać odpowiedź na wiadomość użytkownika
     try {
       const response = await gptClient.createCathegory(userMessage);
