@@ -69,7 +69,7 @@ export default class GptClient {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `${this.apiKey}`,
       },
       body: JSON.stringify({
         model: this.model,
@@ -79,12 +79,12 @@ export default class GptClient {
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-
     if (!response) {
       throw new Error("Response is null");
+    }
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
     }
 
     const data = await response.json();
