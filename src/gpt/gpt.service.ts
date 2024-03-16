@@ -21,7 +21,8 @@ export default class GptClient {
       description: "Function to create a cathegory",
       name: "createCathegory",
       parameters: {
-        type: "",
+        type: "string",
+        name: "cathegoryName",
       },
     },
   };
@@ -60,7 +61,12 @@ export default class GptClient {
     return response;
   }
 
-  async callTemplate(messages: { role: string; content: string }[], tools?: gptTool[]): Promise<openAiResponse> {
+  // temperature 0 to 2, 0 = specific 2 = random === creativity
+  async callTemplate(
+    messages: { role: string; content: string }[],
+    tools?: gptTool[],
+    temperature?: number
+  ): Promise<openAiResponse> {
     if (!this.apiKey) {
       throw new Error("API key is not defined");
     }
@@ -75,7 +81,7 @@ export default class GptClient {
         model: this.model,
         messages,
         tools,
-        max_tokens: 100,
+        n: 1,
       }),
     });
 
