@@ -91,6 +91,11 @@ async function handleText(ctx: Context) {
     } else if ("new_chat_members" in ctx.message) {
       // handle different type of message, if needed
     }
+    //
+    // in future add chat gpt sugestion to user!
+    if (+userMessage >= 500) {
+      ctx.reply("Czy Ty kurwa nie przesadzasz ?");
+    }
 
     const response = await gptClient.createCathegory(userMessage);
 
