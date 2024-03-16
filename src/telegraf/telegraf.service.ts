@@ -2,8 +2,10 @@ import { Telegraf, Context } from "telegraf";
 import GptClient from "../gpt/gpt.service";
 import { createUser } from "../database/database.service";
 import { CreateUserPayload } from "../types/user.types";
+import { PrismaClient } from "@prisma/client";
 
 const gptClient = new GptClient();
+const prisma = new PrismaClient();
 
 let userPayload: CreateUserPayload = {
   chatId: 0,
@@ -62,6 +64,26 @@ async function handleText(ctx: Context) {
 
     if ("text" in ctx.message) {
       userMessage = ctx.message.text;
+      /// only for test, change to uptade montlhy budget checing if user exist first, move function to database.services first !
+      // create function in database checking chatid and uptde monthly budgt because on this moment user exist in schema,
+      // but with 0 bufget, because user is create on app start.
+      // we should check user and uptade budget to chatid user and here only put this function export from database.
+      try {
+        await prisma.userData.create({
+          data: {
+            chatId: ctx.chat?.id || 0,
+            first_name: "a",
+            last_name: "b",
+            language_code: "c",
+            monthlyBudget: +userMessage,
+          },
+        });
+      } catch (error) {
+        console.error("Błąd podczas zapisywania danych do bazy danych:", error);
+        ctx.reply(
+          `Przepraszam, wystąpił błąd podczas zapisywania danych${error}`
+        );
+      }
     } else if ("new_chat_members" in ctx.message) {
       // handle different type of message, if needed
     }
