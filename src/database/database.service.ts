@@ -12,6 +12,13 @@ export const prisma =
 if (process.env.NODE_ENV != "production") globalForPrisma.prisma;
 
 export async function createUser(payload: CreateUserPayload) {
+  const existingUser = await prisma.userData.findMany({
+    where: {
+      chatId: payload.chatId,
+    },
+  });
+
+  if (existingUser) return;
   try {
     const createdUser = await prisma.userData.create({
       data: {
@@ -27,5 +34,22 @@ export async function createUser(payload: CreateUserPayload) {
   } catch (error) {
     console.error("Error creating user:", error);
     throw error;
+  }
+}
+
+export async function updateMonthBudget(payload: CreateUserPayload) {
+  try {
+    await prisma.userData.updateMany({
+      where: {
+        chatId: payload.chatId,
+      },
+      data: {
+        monthlyBudget: payload.monthly_budget, // Używamy wartości z obiektu payload
+      },
+    });
+  } catch (error) {
+    console.error("Błąd podczas aktualizacji danych w bazie danych:", error);
+    // W przypadku błędu, zwróć komunikat do obsługi
+    throw error; // Rzucamy błąd dalej, aby obsłużyć go na wyższym poziomie
   }
 }

@@ -1,6 +1,6 @@
 import { Telegraf, Context } from "telegraf";
 import GptClient from "../gpt/gpt.service";
-import { createUser } from "../database/database.service";
+import { createUser, updateMonthBudget } from "../database/database.service";
 import { CreateUserPayload } from "../types/user.types";
 import { PrismaClient } from "@prisma/client";
 
@@ -70,6 +70,7 @@ async function handleText(ctx: Context) {
       // now after chat welcome message we put our budget,
       // theh budget is uptade what is corrent,
       //but if we send another message, budget will be uptadig again
+      // work only on comand /start in telegram
       try {
         await prisma.userData.updateMany({
           where: {
@@ -88,6 +89,8 @@ async function handleText(ctx: Context) {
           `Przepraszam, wystąpił błąd podczas aktualizacji danych${error}`
         );
       }
+      // new uptade bellowe:
+      // await updateMonthBudget(userPayload);
     } else if ("new_chat_members" in ctx.message) {
       // handle different type of message, if needed
     }
