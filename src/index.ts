@@ -1,90 +1,20 @@
-import express, { Request, Response } from "express";
-import GptClient from "./gpt/gpt.service";
-import { Context } from "telegraf";
+import express from "express";
+import { initializeTelegramBot } from "./telegraf/telegraf.service";
 import { createUser } from "./database/database.service";
-import { CreateUserPayload } from "./types/user.types";
+
+require("dotenv").config();
 
 const app = express();
-const port = 3000;
-
-let userPayload: CreateUserPayload = {
-  chatId: 0,
-  first_name: "",
-  last_name: "",
-  language_code: "",
-  monthly_budget: 0,
-};
+const port = process.env.SERVER_PORT || 3000;
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-  require("dotenv").config();
-  const { Telegraf } = require("telegraf");
 
   const telegramApiKey = process.env.TELEGRAM_API_KEY || "TELEGRAM_API_KEY";
-  // Inicjalizacja bota Telegram
-  const bot = new Telegraf(telegramApiKey);
-  const gptClient = new GptClient();
+  const bot = initializeTelegramBot(telegramApiKey);
 
-  bot.start(async (ctx: Context) => {
-    userPayload = {
-      chatId: ctx.chat?.id || 0, // Ensure a default value in case ctx.chat?.id is undefined
-      first_name: ctx.from?.first_name || "",
-      last_name: ctx.from?.last_name || "",
-      language_code: ctx.from?.language_code || "",
-      monthly_budget: 0,
-      // Add other properties as needed
-    };
-
-    const response = await gptClient.welcomeUser(
-      userPayload.first_name,
-      userPayload.language_code
-    );
-
-    const botReply = response.choices[0].message?.content;
-    // albo przekierować do funkcji procesujących dane
-
-    // Odpowiedź użytkownikowi
-    ctx.reply(botReply);
-    // Insert user information into the database
-    await createUser(userPayload);
-
-    // Wyślij wiadomość powitalną
-    ctx.reply(
-      `Witaj ${userPayload.first_name}! Dziękujemy, że dołączyłeś do naszego czatu.`
-    );
-
-    ctx.reply(
-      `${userPayload.chatId} ${userPayload.first_name}  ${userPayload.last_name} ${userPayload.language_code}`
-    );
-  });
-
-  // Obsługa wiadomości od użytkowników
-  bot.on("text", async (ctx: any) => {
-    const userMessage = ctx.message.text;
-
-    // Uruchom interwał wysyłający wiadomość co 5 sekund
-    // setInterval(async () => {
-    //   const message = `Elo`;
-    //   await bot.telegram.sendMessage(userPayload.chatId, message);
-    // }, 5000);
-
-    // Wywołaj ChatGPT, aby uzyskać odpowiedź na wiadomość użytkownika
-    try {
-      const response = await gptClient.createCathegory(userMessage);
-
-      const botReply = response.choices[0].message?.content;
-      // albo przekierować do funkcji procesujących dane
-
-      // Odpowiedź użytkownikowi
-      ctx.reply(botReply);
-    } catch (error) {
-      console.error("Błąd podczas komunikacji z OpenAI:", error);
-      ctx.reply("Przepraszam, coś poszło nie tak.");
-    }
-  });
-
-  // Start bota
+  // Start the bot
   bot.launch();
 
-  console.log("Bot uruchomiony. Czekam na wiadomości...");
+  console.log("Bot launched. Waiting for messages...");
 });
