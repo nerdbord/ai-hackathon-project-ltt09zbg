@@ -35,6 +35,16 @@ app.listen(port, () => {
       // Add other properties as needed
     };
 
+    const response = await gptClient.welcomeUser(
+      userPayload.first_name,
+      userPayload.language_code
+    );
+
+    const botReply = response.choices[0].message?.content;
+    // albo przekierować do funkcji procesujących dane
+
+    // Odpowiedź użytkownikowi
+    ctx.reply(botReply);
     // Insert user information into the database
     await createUser(userPayload);
 
