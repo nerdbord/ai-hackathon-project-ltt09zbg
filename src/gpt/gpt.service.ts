@@ -36,21 +36,34 @@ export default class GptClient {
         name: "cathegoryName",
       },
     },
+
+    welcomeUser: {
+      description: "Function to welcome user",
+      name: "welcomeUser",
+      parameters: {
+        type: "string",
+        name: "name",
+      },
+    },
   };
   constructor() {}
 
   // nie jestem pewien czy to jest wgl potrzebne.
-  // async welcomeUser(name: string, language: string) {
-  //   const prompt = `Hi!, My name is ${name}`;
-  //   return await this.complete({
-  //     systemMessage: `${this.basicContext}. User's going to provide you his name, and you should greet him using his name. Please provide response in language: ${language}`,
-  //     userMessage: prompt,
-  //   });
-  // }
+  async welcomeUser(name: string, language: string) {
+    const prompt = `Hi!, My name is ${name}`;
+    return await this.complete({
+      systemMessage: `${this.basicContext}. User's going to provide you his name, and you should greet him using his name. Greeting should be different every time and should have at least 30 words. Please provide response in language: ${language}. And ask user about his monthly budget for alcohol, user must write back number `,
+      userMessage: prompt,
+    });
+  }
 
   // Funkcja ma za zadanie skomentować trend zmian wydatków użytkownika w określonym czasie (z dnia na dzień, z tygodnia na tydzień)
   // TODO: timeBasis enum
-  async commentTrend(trend: number, language: string, timeBasis: "day" | "week" | "month") {
+  async commentTrend(
+    trend: number,
+    language: string,
+    timeBasis: "day" | "week" | "month"
+  ) {
     const systemMessage = `${this.basicContext} Rate, comment this trend of his spending on addiction: ${trend} (it's a ${timeBasis} to ${timeBasis} trend).  If it's negative please encourage him to do better, if it's positive praise him, give him more tips, and ask him why does he thinks so he's improved. Please provide response in language: ${language}`;
     // Coś w ten deseń.
     const userMessage = `Hey, this is my last trend ${trend}, what do you think about it?`;
@@ -61,7 +74,11 @@ export default class GptClient {
   // Funkcja ma za zadanie sporządzić podsumowanie wydatków, trendów wydatków na używki użytkownika.
   // todo: ogarnąć okres. + Ogarnąć funkcję używającą tool'ów by ogarnąć dane od użytkownika od kiedy do kiedy chce podsumować.
   // spendingData = JSON?
-  async periodicalSummary(spendingData: string, language: string, period: "od 9 września 2022 do 13 września 2023") {
+  async periodicalSummary(
+    spendingData: string,
+    language: string,
+    period: "od 9 września 2022 do 13 września 2023"
+  ) {
     const systemMessage = `${this.basicContext} Provide summary of his spending on addiction over the period: ${period}, you could distunguish trends during smaller periods, and comment on them, aswell as decide if overally he's going in the good direction. Please provide response in language: ${language}`;
     const userMessage = `Hey, i'll give you data of my spending during this period ${period}. The data: ${spendingData}. What do you think about it?`;
     return await this.complete({ systemMessage, userMessage });
@@ -79,11 +96,20 @@ export default class GptClient {
   // przykładowa funkcja która będzie używana do tworzenia kategorii.
   async createCathegory(name: string) {
     const prompt = `create a cathegory named ${name}`;
-    return await this.complete({ systemMessage: "You're a helpful assistant", userMessage: prompt });
+    return await this.complete({
+      systemMessage: "You're a helpful assistant",
+      userMessage: prompt,
+    });
   }
 
   // feel free to extend to arrays if needed (passing whole convo)
-  async complete({ systemMessage, userMessage }: { systemMessage: string; userMessage: string }) {
+  async complete({
+    systemMessage,
+    userMessage,
+  }: {
+    systemMessage: string;
+    userMessage: string;
+  }) {
     const response = await this.callTemplate([
       { role: "system", content: systemMessage },
       { role: "user", content: userMessage },
