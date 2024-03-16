@@ -1,6 +1,5 @@
 import express from "express";
 import { initializeTelegramBot } from "./telegraf/telegraf.service";
-import { createUser } from "./database/database.service";
 
 require("dotenv").config();
 
