@@ -20,7 +20,6 @@ app.listen(port, () => {
   // Obsługa wiadomości od użytkowników
   bot.on("text", async (ctx: any) => {
     const userMessage = ctx.message.text;
-
     // Wywołaj ChatGPT, aby uzyskać odpowiedź na wiadomość użytkownika
     try {
       const response = await gptClient.createCathegory(userMessage);
