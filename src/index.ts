@@ -7,6 +7,14 @@ import { CreateUserPayload } from "./types/user.types";
 const app = express();
 const port = 3000;
 
+let userPayload: CreateUserPayload = {
+  chatId: 0,
+  first_name: "",
+  last_name: "",
+  language_code: "",
+  monthly_budget: 0,
+};
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
   require("dotenv").config();
@@ -17,13 +25,13 @@ app.listen(port, () => {
   const bot = new Telegraf(telegramApiKey);
   const gptClient = new GptClient();
 
-
   bot.start(async (ctx: Context) => {
-    const userPayload: CreateUserPayload = {
+    userPayload = {
       chatId: ctx.chat?.id || 0, // Ensure a default value in case ctx.chat?.id is undefined
       first_name: ctx.from?.first_name || "",
       last_name: ctx.from?.last_name || "",
       language_code: ctx.from?.language_code || "",
+      monthly_budget: 0,
       // Add other properties as needed
     };
 
@@ -44,14 +52,11 @@ app.listen(port, () => {
   bot.on("text", async (ctx: any) => {
     const userMessage = ctx.message.text;
 
-    // Pobierz chatId i przechowaj go
-    chatId = ctx.chat.id;
-
     // Uruchom interwał wysyłający wiadomość co 5 sekund
-    setInterval(async () => {
-      const message = `Elo`;
-      await bot.telegram.sendMessage(chatId, message);
-    }, 5000);
+    // setInterval(async () => {
+    //   const message = `Elo`;
+    //   await bot.telegram.sendMessage(userPayload.chatId, message);
+    // }, 5000);
 
     // Wywołaj ChatGPT, aby uzyskać odpowiedź na wiadomość użytkownika
     try {

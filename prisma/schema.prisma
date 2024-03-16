@@ -21,7 +21,7 @@ model userData{
   language_code   String
   sex             Sex @default(UNDEFINED)
   dailySpending   dailySpending[]
-  monthlyBudget   Int
+  monthlyBudget   Int? 
 
   // cathegories     Cathegory[]
 }

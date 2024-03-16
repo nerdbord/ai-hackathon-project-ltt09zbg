@@ -19,6 +19,7 @@ export async function createUser(payload: CreateUserPayload) {
         first_name: payload.first_name,
         last_name: payload.last_name,
         language_code: payload.language_code,
+        monthlyBudget: payload.monthly_budget,
         // Add other fields as needed
       },
     });
@@ -28,4 +29,3 @@ export async function createUser(payload: CreateUserPayload) {
     throw error;
   }
 }
-

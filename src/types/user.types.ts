@@ -7,4 +7,5 @@ export interface CreateUserPayload {
   first_name: string;
   last_name: string;
   language_code: string;
+  monthly_budget: number;
 }
