@@ -1,17 +1,17 @@
-import { Telegraf, Context } from "telegraf";
-import GptClient from "../gpt/gpt.service";
-import { createUser, updateMonthBudget } from "../database/database.service";
-import { CreateUserPayload } from "../types/user.types";
-import { PrismaClient } from "@prisma/client";
+import { Telegraf, Context } from 'telegraf';
+import GptClient from '../gpt/gpt.service';
+import { createUser, updateMonthBudget } from '../database/database.service';
+import { CreateUserPayload } from '../types/user.types';
+import { PrismaClient } from '@prisma/client';
 
 const gptClient = new GptClient();
 const prisma = new PrismaClient();
 
 let userPayload: CreateUserPayload = {
   chatId: 0,
-  first_name: "",
-  last_name: "",
-  language_code: "",
+  first_name: '',
+  last_name: '',
+  language_code: '',
   monthly_budget: 0,
 };
 
@@ -19,7 +19,7 @@ export function initializeTelegramBot(apiKey: string) {
   const bot = new Telegraf(apiKey);
 
   bot.start(handleStart);
-  bot.on("text", handleText);
+  bot.on('text', handleText);
 
   return bot;
 }
@@ -28,9 +28,9 @@ async function handleStart(ctx: Context) {
   //get user data from context
   userPayload = {
     chatId: ctx.chat?.id || 0,
-    first_name: ctx.from?.first_name || "",
-    last_name: ctx.from?.last_name || "",
-    language_code: ctx.from?.language_code || "",
+    first_name: ctx.from?.first_name || '',
+    last_name: ctx.from?.last_name || '',
+    language_code: ctx.from?.language_code || '',
     monthly_budget: 0,
   };
 
@@ -58,12 +58,12 @@ async function handleStart(ctx: Context) {
 async function handleText(ctx: Context) {
   try {
     if (!ctx || !ctx.message) {
-      throw new Error("Context or message is undefined.");
+      throw new Error('Context or message is undefined.');
     }
 
-    let userMessage = "";
+    let userMessage = '';
 
-    if ("text" in ctx.message) {
+    if ('text' in ctx.message) {
       userMessage = ctx.message.text;
       // be careful, budget is update but in every message is uptading !
       // we should avoid this behavior !!
@@ -82,7 +82,7 @@ async function handleText(ctx: Context) {
         });
       } catch (error) {
         console.error(
-          "Błąd podczas aktualizacji danych w bazie danych:",
+          'Błąd podczas aktualizacji danych w bazie danych:',
           error
         );
         ctx.reply(
@@ -91,24 +91,31 @@ async function handleText(ctx: Context) {
       }
       // new uptade bellowe:
       // await updateMonthBudget(userPayload);
-    } else if ("new_chat_members" in ctx.message) {
+    } else if ('new_chat_members' in ctx.message) {
       // handle different type of message, if needed
     }
     //
     // in future add chat gpt sugestion to user!
     if (+userMessage >= 500) {
-      ctx.reply("Czy Ty kurwa nie przesadzasz ?");
+      ctx.reply('Czy Ty kurwa nie przesadzasz ?');
     }
 
-    const response = await gptClient.createCathegory(userMessage);
-
+    const response = await gptClient.commentBudget(
+      userMessage,
+      userPayload.language_code
+    );
     const botReply = response.choices[0].message?.content;
-    // albo przekierować do funkcji procesujących dane
-
-    // Odpowiedź użytkownikowi
     ctx.reply(botReply);
+
+    // const response = await gptClient.createCathegory(userMessage);
+
+    // const botReply = response.choices[0].message?.content;
+    // // albo przekierować do funkcji procesujących dane
+
+    // // Odpowiedź użytkownikowi
+    // ctx.reply(botReply);
   } catch (error) {
-    console.error("Błąd podczas komunikacji:", error);
+    console.error('Błąd podczas komunikacji:', error);
     //ctx.reply("Przepraszam, coś poszło nie tak.");
   }
 }
