@@ -15,12 +15,14 @@ datasource db {
 
 model userData{
   id              String         @id @default(uuid())
-  chat_id          Int
+  chatId          BigInt
   first_name      String
   last_name       String
   language_code   String
   sex             Sex @default(UNDEFINED)
   dailySpending   dailySpending[]
+  monthlyBudget   Int
+
   // cathegories     Cathegory[]
 }
 
@@ -32,7 +34,7 @@ enum Sex {
 
 // model Cathegory {
 //   id String @id @default(uuid())
-//   userId String 
+//   userId BigInt 
 //   cathegoryName String 
 //   userData userData @relation(fields: [userId], references: [id])
 //   dailySpending dailyCathegorySpending[]

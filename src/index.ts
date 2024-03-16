@@ -1,13 +1,11 @@
 import express, { Request, Response } from "express";
 import GptClient from "./gpt/gpt.service";
 import { Context } from "telegraf";
+import { createUser } from "./database/database.service";
+import { CreateUserPayload } from "./types/user.types";
 
 const app = express();
 const port = 3000;
-
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello World!");
-});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
@@ -19,26 +17,28 @@ app.listen(port, () => {
   const bot = new Telegraf(telegramApiKey);
   const gptClient = new GptClient();
 
-  // Obsługa komendy start
-  bot.start((ctx: Context) => {
-    // Pobierz imię użytkownika
-    const userName = ctx.from?.first_name;
+
+  bot.start(async (ctx: Context) => {
+    const userPayload: CreateUserPayload = {
+      chatId: ctx.chat?.id || 0, // Ensure a default value in case ctx.chat?.id is undefined
+      first_name: ctx.from?.first_name || "",
+      last_name: ctx.from?.last_name || "",
+      language_code: ctx.from?.language_code || "",
+      // Add other properties as needed
+    };
+
+    // Insert user information into the database
+    await createUser(userPayload);
 
     // Wyślij wiadomość powitalną
-    ctx.reply(`Witaj ${userName}! Dziękujemy, że dołączyłeś do naszego czatu.`);
+    ctx.reply(
+      `Witaj ${userPayload.first_name}! Dziękujemy, że dołączyłeś do naszego czatu.`
+    );
+
+    ctx.reply(
+      `${userPayload.chatId} ${userPayload.first_name}  ${userPayload.last_name} ${userPayload.language_code}`
+    );
   });
-
-  // ???
-
-  // setInterval(async (ctx: Context) => {
-  //   //const users = await bot.telegram.getChatMembersCount();
-  //   const message = `Elo`;
-  //   await bot.telegram.sendMessage(ctx.chat?.id, message);
-  // }, 5000); // 5 sekund w milisekundach
-
-  //
-
-  let chatId: any;
 
   // Obsługa wiadomości od użytkowników
   bot.on("text", async (ctx: any) => {

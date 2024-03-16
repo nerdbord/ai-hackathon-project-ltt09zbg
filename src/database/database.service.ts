@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { CreateUserPayload } from "../types/user.types";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
@@ -10,20 +11,21 @@ export const prisma =
 
 if (process.env.NODE_ENV != "production") globalForPrisma.prisma;
 
-const createUser = async (userData: {
-  chatId: number;
-  firstName: string;
-  lastName: string;
-  languageCode: string;
-  sex?: Sex;
-}) => {
-  prisma.userData.create({
-    data: {
-      chat_id: userData.chatId,
-      first_name: userData.firstName,
-      last_name: userData.lastName,
-      language_code: userData.languageCode,
-      sex: userData.sex,
-    },
-  });
-};
+export async function createUser(payload: CreateUserPayload) {
+  try {
+    const createdUser = await prisma.userData.create({
+      data: {
+        chatId: payload.chatId,
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        language_code: payload.language_code,
+        // Add other fields as needed
+      },
+    });
+    return createdUser;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error;
+  }
+}
+
