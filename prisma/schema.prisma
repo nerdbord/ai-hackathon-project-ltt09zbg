@@ -20,7 +20,8 @@ model userData{
   last_name       String
   language_code   String
   sex             Sex @default(UNDEFINED)
-  cathegories     Cathegory[]
+  dailySpending   dailySpending[]
+  // cathegories     Cathegory[]
 }
 
 enum Sex {
@@ -29,18 +30,20 @@ enum Sex {
   UNDEFINED
 }
 
-model Cathegory {
-  id String @id @default(uuid())
-  userId String 
-  cathegoryName String 
-  userData userData @relation(fields: [userId], references: [id])
-  dailySpending dailyCathegorySpending[]
-}
+// model Cathegory {
+//   id String @id @default(uuid())
+//   userId String 
+//   cathegoryName String 
+//   userData userData @relation(fields: [userId], references: [id])
+//   dailySpending dailyCathegorySpending[]
+// }
 
-model dailyCathegorySpending {
+model dailySpending {
   id          String @id @default(uuid())
-  cathegoryId String 
+  // cathegoryId String 
+  userId      String
   amount      Float  
   date        DateTime @default(now())
-  cathegory   Cathegory @relation(fields: [cathegoryId], references: [id])
+  userData    userData  @relation(fields: [userId], references: [id])
+  // cathegory   Cathegory @relation(fields: [cathegoryId], references: [id])
 }
