@@ -49,7 +49,7 @@ export default class GptClient {
   constructor() {}
 
   // nie jestem pewien czy to jest wgl potrzebne.
-  async welcomeUser(name: string, language: string) {
+  async welcomeUser(name: string, language: string, monthlyBudget: number) {
     const prompt = `Hi!, My name is ${name}`;
     return await this.complete({
       systemMessage: `${this.basicContext}. User's going to provide you his name, and you should greet him using his name. Greeting should be different every time and should have at least 30 words. Please provide response in language: ${language}. And ask user about his monthly budget for alcohol, user must write back number `,

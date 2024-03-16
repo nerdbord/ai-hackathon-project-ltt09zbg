@@ -37,7 +37,8 @@ async function handleStart(ctx: Context) {
   //bot behaviour on conversation start
   const response = await gptClient.welcomeUser(
     userPayload.first_name,
-    userPayload.language_code
+    userPayload.language_code,
+    userPayload.monthly_budget
   );
   const botReply = response.choices[0].message?.content;
   ctx.reply(botReply);
@@ -64,24 +65,27 @@ async function handleText(ctx: Context) {
 
     if ("text" in ctx.message) {
       userMessage = ctx.message.text;
-      /// only for test, change to uptade montlhy budget checing if user exist first, move function to database.services first !
-      // create function in database checking chatid and uptde monthly budgt because on this moment user exist in schema,
-      // but with 0 bufget, because user is create on app start.
-      // we should check user and uptade budget to chatid user and here only put this function export from database.
+      // be careful, budget is update but in every message is uptading !
+      // we should avoid this behavior !!
+      // now after chat welcome message we put our budget,
+      // theh budget is uptade what is corrent,
+      //but if we send another message, budget will be uptadig again
       try {
-        await prisma.userData.create({
+        await prisma.userData.updateMany({
+          where: {
+            chatId: userPayload.chatId,
+          },
           data: {
-            chatId: ctx.chat?.id || 0,
-            first_name: "a",
-            last_name: "b",
-            language_code: "c",
-            monthlyBudget: +userMessage,
+            monthlyBudget: parseInt(userMessage),
           },
         });
       } catch (error) {
-        console.error("Błąd podczas zapisywania danych do bazy danych:", error);
+        console.error(
+          "Błąd podczas aktualizacji danych w bazie danych:",
+          error
+        );
         ctx.reply(
-          `Przepraszam, wystąpił błąd podczas zapisywania danych${error}`
+          `Przepraszam, wystąpił błąd podczas aktualizacji danych${error}`
         );
       }
     } else if ("new_chat_members" in ctx.message) {
