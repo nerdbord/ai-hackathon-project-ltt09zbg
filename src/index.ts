@@ -1,4 +1,6 @@
 import express, { Request, Response } from "express";
+import GptClient from "./gpt/gpt.service";
+import { Context } from "telegraf";
 
 const app = express();
 const port = 3000;
@@ -11,32 +13,52 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
   require("dotenv").config();
   const { Telegraf } = require("telegraf");
-  const OpenAI = require("openai");
 
-  // Konfiguracja klienta OpenAI
-  const openaiApiKey = process.env["OPENAI_API_KEY"] || "OPENAI_API_KEY";
   const telegramApiKey = process.env.TELEGRAM_API_KEY || "TELEGRAM_API_KEY";
-  console.log(openaiApiKey, telegramApiKey);
-  const openaiClient = new OpenAI({
-    apiKey: openaiApiKey, // This is the default and can be omitted
-  });
-
   // Inicjalizacja bota Telegram
   const bot = new Telegraf(telegramApiKey);
+  const gptClient = new GptClient();
+
+  // Obsługa komendy start
+  bot.start((ctx: Context) => {
+    // Pobierz imię użytkownika
+    const userName = ctx.from?.first_name;
+
+    // Wyślij wiadomość powitalną
+    ctx.reply(`Witaj ${userName}! Dziękujemy, że dołączyłeś do naszego czatu.`);
+  });
+
+  // ???
+
+  // setInterval(async (ctx: Context) => {
+  //   //const users = await bot.telegram.getChatMembersCount();
+  //   const message = `Elo`;
+  //   await bot.telegram.sendMessage(ctx.chat?.id, message);
+  // }, 5000); // 5 sekund w milisekundach
+
+  //
+
+  let chatId: any;
 
   // Obsługa wiadomości od użytkowników
   bot.on("text", async (ctx: any) => {
     const userMessage = ctx.message.text;
 
+    // Pobierz chatId i przechowaj go
+    chatId = ctx.chat.id;
+
+    // Uruchom interwał wysyłający wiadomość co 5 sekund
+    setInterval(async () => {
+      const message = `Elo`;
+      await bot.telegram.sendMessage(chatId, message);
+    }, 5000);
+
     // Wywołaj ChatGPT, aby uzyskać odpowiedź na wiadomość użytkownika
     try {
-      const response = await openaiClient.complete({
-        engine: "davinci",
-        prompt: userMessage,
-        maxTokens: 50,
-      });
+      const response = await gptClient.createCathegory(userMessage);
 
-      const botReply = response.data.choices[0].text.trim();
+      const botReply = response.choices[0].message?.content;
+      // albo przekierować do funkcji procesujących dane
 
       // Odpowiedź użytkownikowi
       ctx.reply(botReply);
