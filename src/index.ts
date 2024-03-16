@@ -38,12 +38,20 @@ app.listen(port, () => {
 
   //
 
-  // Obsługa wiadomości od użytkowników
   let chatId: any;
 
   // Obsługa wiadomości od użytkowników
   bot.on("text", async (ctx: any) => {
     const userMessage = ctx.message.text;
+
+    // Pobierz chatId i przechowaj go
+    chatId = ctx.chat.id;
+
+    // Uruchom interwał wysyłający wiadomość co 5 sekund
+    setInterval(async () => {
+      const message = `Elo`;
+      await bot.telegram.sendMessage(chatId, message);
+    }, 5000);
 
     // Wywołaj ChatGPT, aby uzyskać odpowiedź na wiadomość użytkownika
     try {
