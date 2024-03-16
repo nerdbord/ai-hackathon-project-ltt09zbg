@@ -15,6 +15,8 @@ export default class GptClient {
   model = "gpt-3.5-turbo";
   endpoint = "https://training.nerdbord.io/api/v1/openai/chat/completions";
   apiKey = process.env["OPENAI_API_KEY"] || null;
+  basicContext =
+    "You're user's good friend, he's trying to get rid of his addictions (drinking, smoking etc.), your goal is to help him to keep in control his addiction, and finally to reduce it to a minimum.";
   // Funkcje służą do ekstrakcji z prompta usera danych by zwrócić JSON argumentów które funkcja mogłaby przyjąć w parametrach. (nie musi zwracać wszystkiego bo zależy co poda user)
   gptFunctions: { [key: string]: gptFunction } = {
     createCathegory: {
@@ -25,15 +27,62 @@ export default class GptClient {
         name: "cathegoryName",
       },
     },
+    // TODO: FINISH THIS
+    getTimePeriod: {
+      description: "Function to create a cathegory",
+      name: "createCathegory",
+      parameters: {
+        type: "string",
+        name: "cathegoryName",
+      },
+    },
   };
   constructor() {}
 
-  // przykładowa funkcja która będzie używałana do tworzenia kategorii.
+  // nie jestem pewien czy to jest wgl potrzebne.
+  // async welcomeUser(name: string, language: string) {
+  //   const prompt = `Hi!, My name is ${name}`;
+  //   return await this.complete({
+  //     systemMessage: `${this.basicContext}. User's going to provide you his name, and you should greet him using his name. Please provide response in language: ${language}`,
+  //     userMessage: prompt,
+  //   });
+  // }
+
+  // Funkcja ma za zadanie skomentować trend zmian wydatków użytkownika w określonym czasie (z dnia na dzień, z tygodnia na tydzień)
+  // TODO: timeBasis enum
+  async commentTrend(trend: number, language: string, timeBasis: "day" | "week" | "month") {
+    const systemMessage = `${this.basicContext} Rate, comment this trend of his spending on addiction: ${trend} (it's a ${timeBasis} to ${timeBasis} trend).  If it's negative please encourage him to do better, if it's positive praise him, give him more tips, and ask him why does he thinks so he's improved. Please provide response in language: ${language}`;
+    // Coś w ten deseń.
+    const userMessage = `Hey, this is my last trend ${trend}, what do you think about it?`;
+
+    return await this.complete({ systemMessage, userMessage });
+  }
+
+  // Funkcja ma za zadanie sporządzić podsumowanie wydatków, trendów wydatków na używki użytkownika.
+  // todo: ogarnąć okres. + Ogarnąć funkcję używającą tool'ów by ogarnąć dane od użytkownika od kiedy do kiedy chce podsumować.
+  // spendingData = JSON?
+  async periodicalSummary(spendingData: string, language: string, period: "od 9 września 2022 do 13 września 2023") {
+    const systemMessage = `${this.basicContext} Provide summary of his spending on addiction over the period: ${period}, you could distunguish trends during smaller periods, and comment on them, aswell as decide if overally he's going in the good direction. Please provide response in language: ${language}`;
+    const userMessage = `Hey, i'll give you data of my spending during this period ${period}. The data: ${spendingData}. What do you think about it?`;
+    return await this.complete({ systemMessage, userMessage });
+  }
+
+  async getPeriodicalSummary(message: string) {
+    const systemDescription = `User is going to provide you a time period.`;
+    const tool = this.gptFunctions.getTimePeriod;
+    return await this.completeWithTools({
+      userMessage: message,
+      functions: [tool],
+    });
+  }
+
+  // przykładowa funkcja która będzie używana do tworzenia kategorii.
   async createCathegory(name: string) {
     const prompt = `create a cathegory named ${name}`;
     return await this.complete({ systemMessage: "You're a helpful assistant", userMessage: prompt });
   }
 
+  // feel free to extend to arrays if needed (passing whole convo)
   async complete({ systemMessage, userMessage }: { systemMessage: string; userMessage: string }) {
     const response = await this.callTemplate([
       { role: "system", content: systemMessage },
@@ -47,21 +96,22 @@ export default class GptClient {
     userMessage,
     functions,
   }: {
-    systemMessage: string;
+    systemMessage?: string;
     userMessage: string;
     functions: gptFunction[];
   }) {
+    const messages = [{ role: "user", content: userMessage }];
+    if (systemMessage) {
+      messages.unshift({ role: "system", content: systemMessage });
+    }
     const response = await this.callTemplate(
-      [
-        { role: "system", content: systemMessage },
-        { role: "user", content: userMessage },
-      ],
+      messages,
       functions.map((func) => this.createTool(func))
     );
     return response;
   }
 
-  // temperature 0 to 2, 0 = specific 2 = random === creativity
+  // temperature 0 to 2, 0 = specific 2 = random === creativity (to tweak in individual method)
   async callTemplate(
     messages: { role: string; content: string }[],
     tools?: gptTool[],

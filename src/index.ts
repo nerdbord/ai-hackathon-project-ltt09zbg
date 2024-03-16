@@ -1,16 +1,11 @@
 import express, { Request, Response } from "express";
 import GptClient from "./gpt/gpt.service";
-import { Context, Middleware } from "telegraf";
+import { Context } from "telegraf";
 import { createUser } from "./database/database.service";
-
 import { CreateUserPayload } from "./types/user.types";
 
 const app = express();
 const port = 3000;
-
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello World!");
-});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
@@ -21,6 +16,7 @@ app.listen(port, () => {
   // Inicjalizacja bota Telegram
   const bot = new Telegraf(telegramApiKey);
   const gptClient = new GptClient();
+
 
   bot.start(async (ctx: Context) => {
     const userPayload: CreateUserPayload = {
@@ -43,9 +39,19 @@ app.listen(port, () => {
       `${userPayload.chatId} ${userPayload.first_name}  ${userPayload.last_name} ${userPayload.language_code}`
     );
   });
+
   // Obsługa wiadomości od użytkowników
   bot.on("text", async (ctx: any) => {
     const userMessage = ctx.message.text;
+
+    // Pobierz chatId i przechowaj go
+    chatId = ctx.chat.id;
+
+    // Uruchom interwał wysyłający wiadomość co 5 sekund
+    setInterval(async () => {
+      const message = `Elo`;
+      await bot.telegram.sendMessage(chatId, message);
+    }, 5000);
 
     // Wywołaj ChatGPT, aby uzyskać odpowiedź na wiadomość użytkownika
     try {

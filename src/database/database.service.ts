@@ -1,7 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { CreateUserPayload } from "../types/user.types";
 
-const prisma = new PrismaClient();
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: ["query"],
+  });
+
+if (process.env.NODE_ENV != "production") globalForPrisma.prisma;
 
 export async function createUser(payload: CreateUserPayload) {
   try {
@@ -20,3 +28,4 @@ export async function createUser(payload: CreateUserPayload) {
     throw error;
   }
 }
+
