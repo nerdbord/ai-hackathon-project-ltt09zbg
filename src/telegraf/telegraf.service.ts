@@ -1,3 +1,4 @@
+
 import { PrismaClient } from "@prisma/client";
 import { Context, Telegraf } from "telegraf";
 import { createUser, getUserDataContext } from "../database/database.service";
@@ -29,6 +30,7 @@ export function initializeTelegramBot(apiKey: string) {
 
 async function handleStart(ctx: Context) {
   //get user data from context
+
   const userPayload = getUserSession(ctx);
   const userData = await getUserDataContext(userPayload);
 
@@ -41,6 +43,7 @@ async function handleStart(ctx: Context) {
     userPayload.first_name,
     userPayload.language_code,
     Number(userPayload.monthly_budget)
+
   );
   const botReply = response.choices[0].message?.content;
   ctx.reply(botReply);
@@ -114,6 +117,7 @@ async function handleText(ctx: Context) {
 
     // // Odpowiedź użytkownikowi
     // ctx.reply(botReply);
+
   } catch (error) {
     console.error("Błąd podczas komunikacji:", error);
     //ctx.reply("Przepraszam, coś poszło nie tak.");
