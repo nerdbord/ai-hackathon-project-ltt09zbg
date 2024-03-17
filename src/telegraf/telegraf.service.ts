@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { Context, Telegraf } from "telegraf";
-import { createUser, getUserDataContext } from "../database/database.service";
+import {
+  createUser,
+  getUserDataContext,
+  updateMonthBudget,
+} from "../database/database.service";
 import GptClient from "../gpt/gpt.service";
 import { CreateUserPayload } from "../types/user.types";
 
@@ -63,43 +67,42 @@ async function handleText(ctx: Context) {
       throw new Error("Context or message is undefined.");
     }
 
-    const userData: CreateUserPayload = await getUserDataContext(getUserSession(ctx));
+    const userData: CreateUserPayload = await getUserDataContext(
+      getUserSession(ctx)
+    );
 
     let userMessage = "";
 
     if ("text" in ctx.message) {
       userMessage = ctx.message.text;
-      // be careful, budget is update but in every message is uptading !
-      // we should avoid this behavior !!
-      // now after chat welcome message we put our budget,
-      // theh budget is uptade what is corrent,
-      //but if we send another message, budget will be uptadig again
-      // work only on comand /start in telegram
-      // const functionality = gptClient.provideFunctionality(userMessage);
-      // console.log(functionality);
-      try {
-        await prisma.userData.updateMany({
-          where: {
-            chatId: userData.chatId,
-          },
-          data: {
-            monthlyBudget: parseInt(userMessage),
-          },
-        });
-      } catch (error) {
-        console.error("Błąd podczas aktualizacji danych w bazie danych:", error);
-        ctx.reply(`Przepraszam, wystąpił błąd podczas aktualizacji danych${error}`);
-      }
-      // new uptade bellowe:
-      // await updateMonthBudget(userPayload);
-    } else if ("new_chat_members" in ctx.message) {
-      // handle different type of message, if needed
-    }
-    gptClient.userDataContext = userData;
 
-    const response = await gptClient.commentBudget(userMessage, userData.language_code);
-    const functionalities = await gptClient.provideFunctionality(userMessage);
-    ctx.reply(typeof response === "string" ? response : JSON.stringify(response));
+      gptClient.userDataContext = userData;
+      const response = await gptClient.provideFunctionality(userMessage);
+
+      console.log(response);
+      // const response = await gptClient.commentBudget(
+      //   userMessage,
+      //   userData.language_code
+      // );
+
+      if (typeof response === "string") {
+        ctx.reply(response);
+      } else {
+        switch (response.name) {
+          case "updateMonthlyBudget":
+            const newBudget = JSON.parse(response.arguments).budget;
+            updateMonthBudget(userData, newBudget);
+            //console.log(userData);
+            break;
+          default:
+            console.log("no action");
+        }
+      }
+
+      // ctx.reply(
+      //    ? response : JSON.stringify(response)
+      // );
+    }
   } catch (error) {
     console.error("Błąd podczas komunikacji:", error);
     //ctx.reply("Przepraszam, coś poszło nie tak.");

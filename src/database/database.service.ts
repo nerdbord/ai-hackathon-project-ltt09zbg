@@ -57,14 +57,17 @@ export async function createUser(payload: CreateUserPayload) {
   }
 }
 
-export async function updateMonthBudget(payload: CreateUserPayload) {
+export async function updateMonthBudget(
+  payload: CreateUserPayload,
+  newBudgetValue: number
+) {
   try {
-    await prisma.userData.updateMany({
+    await prisma.userData.update({
       where: {
-        chatId: payload.chatId,
+        chatId: BigInt(payload.chatId),
       },
       data: {
-        monthlyBudget: payload.monthly_budget, // Używamy wartości z obiektu payload
+        monthlyBudget: newBudgetValue, // Używamy wartości z obiektu payload
       },
     });
   } catch (error) {

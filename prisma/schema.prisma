@@ -13,7 +13,7 @@ model userData {
   last_name     String
   language_code String
   sex           Sex             @default(UNDEFINED)
-  chatId        BigInt
+  chatId        BigInt          @unique
   monthlyBudget Int?
   dailySpending dailySpending[]
 }
