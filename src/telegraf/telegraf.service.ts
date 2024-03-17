@@ -42,7 +42,7 @@ async function handleStart(ctx: Context) {
     userPayload.language_code,
     Number(userPayload.monthly_budget)
   );
-  const botReply = response.choices[0].message?.content;
+  const botReply = response;
   ctx.reply(botReply);
 
   //save user data to db
@@ -94,26 +94,12 @@ async function handleText(ctx: Context) {
     } else if ("new_chat_members" in ctx.message) {
       // handle different type of message, if needed
     }
-    //
-    // in future add chat gpt sugestion to user!
-    if (+userMessage >= 500) {
-      ctx.reply("Czy Ty kurwa nie przesadzasz ?");
-    }
-
     gptClient.userDataContext = userData;
-    console.log(userData);
 
     const response = await gptClient.commentBudget(userMessage, userData.language_code);
-    const botReply = response.choices[0].message?.content;
-    ctx.reply(botReply);
-
-    // const response = await gptClient.createCathegory(userMessage);
-
-    // const botReply = response.choices[0].message?.content;
-    // // albo przekierować do funkcji procesujących dane
-
-    // // Odpowiedź użytkownikowi
-    // ctx.reply(botReply);
+    const functionalities = await gptClient.provideFunctionality(userMessage);
+    console.log(functionalities);
+    ctx.reply(functionalities);
   } catch (error) {
     console.error("Błąd podczas komunikacji:", error);
     //ctx.reply("Przepraszam, coś poszło nie tak.");

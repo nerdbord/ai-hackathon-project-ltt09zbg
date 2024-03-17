@@ -32,14 +32,43 @@ export default class GptClient {
         type: "object",
         properties: {
           startingDate: {
-            type: "date",
+            type: "object",
             description: "beginning date of time period",
+            properties: {
+              year: {
+                type: "string",
+                description: "year of time period",
+              },
+              month: {
+                type: "string",
+                description: "month of time period",
+              },
+              day: {
+                type: "string",
+                description: "day of time period",
+              },
+            },
           },
           finishDate: {
-            type: "date",
+            type: "object",
             description: "end date of time period",
+            properties: {
+              year: {
+                type: "string",
+                description: "year of time period",
+              },
+              month: {
+                type: "string",
+                description: "month of time period",
+              },
+              day: {
+                type: "string",
+                description: "day of time period",
+              },
+            },
           },
         },
+        required: ["startingDate", "finishDate"],
       },
     },
     updateMonthlyBudget: {
@@ -53,6 +82,7 @@ export default class GptClient {
             description: "monthly budget for addiction",
           },
         },
+        required: ["budget"],
       },
     },
     updateSpendings: {
@@ -67,6 +97,7 @@ export default class GptClient {
             description: "todays spending on addiction to detract from monthly budget",
           },
         },
+        required: ["spending"],
       },
     },
   };
@@ -128,7 +159,7 @@ export default class GptClient {
   }
 
   async provideFunctionality(userMessage: string) {
-    this.completeWithTools({
+    return this.completeWithTools({
       systemMessage: `${this.basicContext} Your main goal right now is to decide which functionalities should be used with user message.`,
       userMessage,
       functions: [...Object.values(this.gptFunctions)],
@@ -169,11 +200,10 @@ export default class GptClient {
     messages: { role: string; content: string }[],
     tools?: gptTool[],
     temperature?: number
-  ): Promise<openAiResponse> {
+  ): Promise<string> {
     if (!this.apiKey) {
       throw new Error("API key is not defined");
     }
-
     const response = await fetch(this.endpoint, {
       method: "POST",
       headers: {
@@ -181,10 +211,10 @@ export default class GptClient {
         Authorization: `${this.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.model,
         messages,
         tools,
         n: 1,
+        // tool_choice: "auto",
       }),
     });
 
@@ -195,12 +225,19 @@ export default class GptClient {
     if (!response.ok) {
       throw new Error(`Request failed with status ${response.status}`);
     }
-
     const data = await response.json();
     if (!data) {
       throw new Error("Data is null");
     }
-    return data as openAiResponse;
+    if (tools) {
+      try {
+        return data.choices[0].message.tool_calls[0].function;
+      } catch (e) {
+        return data.choices[0].message?.content;
+      }
+    } else {
+      return data.choices[0].message?.content;
+    }
   }
 
   createTool(gptFunction: gptFunction): gptTool {
@@ -217,8 +254,15 @@ type gptFunction = {
       [key: string]: {
         type: any;
         description: string;
+        properties?: {
+          [key: string]: {
+            type: any;
+            description: string;
+          };
+        };
       };
     };
+    required?: string[];
   };
 };
 
