@@ -26,8 +26,7 @@ export default class GptClient {
   // Funkcje służą do ekstrakcji z prompta usera danych by zwrócić JSON argumentów które funkcja mogłaby przyjąć w parametrach. (nie musi zwracać wszystkiego bo zależy co poda user)
   gptFunctions: { [key: string]: gptFunction } = {
     getTimePeriod: {
-      description:
-        "Function to get time period from user, response should be in a range of date format",
+      description: "Function to get time period from user, response should be in a range of date format",
       name: "getTimePeriod",
       parameters: {
         type: "object",
@@ -37,15 +36,15 @@ export default class GptClient {
             description: "beginning date of time period",
             properties: {
               year: {
-                type: "string",
+                type: "number",
                 description: "year of time period",
               },
               month: {
-                type: "string",
+                type: "number",
                 description: "month of time period",
               },
               day: {
-                type: "string",
+                type: "number",
                 description: "day of time period",
               },
             },
@@ -55,15 +54,15 @@ export default class GptClient {
             description: "end date of time period",
             properties: {
               year: {
-                type: "string",
+                type: "number",
                 description: "year of time period",
               },
               month: {
-                type: "string",
+                type: "number",
                 description: "month of time period",
               },
               day: {
-                type: "string",
+                type: "number",
                 description: "day of time period",
               },
             },
@@ -73,8 +72,7 @@ export default class GptClient {
       },
     },
     updateMonthlyBudget: {
-      description:
-        "Function to get from message user monthly budget for alcohol, so it can be stored in database. ",
+      description: "Function to get from message user monthly budget for alcohol, so it can be stored in database. ",
       name: "updateMonthlyBudget",
       parameters: {
         type: "object",
@@ -89,18 +87,39 @@ export default class GptClient {
     },
     updateSpendings: {
       description:
-        "Function is used to update daily spendings for addiction, based on his today spendings. It should be considered as a spending.",
-      name: "updateBudgetSpendings",
+        "Function is used to update daily spendings for addiction, based on his today spendings. It should be considered as a spending. If user's providing you info about his spending or that hi recently bought something you should use this.",
+      name: "updateSpendings",
       parameters: {
         type: "object",
         properties: {
           spending: {
             type: "number",
-            description:
-              "todays spending on addiction to detract from monthly budget",
+            description: "todays spending on addiction to detract from monthly budget",
           },
         },
         required: ["spending"],
+      },
+    },
+    getRemaingBudget: {
+      description: "provide user the value of remeaning budget",
+      name: "getRemaingBudget",
+      parameters: {
+        type: "object",
+        properties: {
+          message: {
+            type: "string",
+            description: "monthly budget for addiction",
+          },
+          language: {
+            type: "string",
+            description: "language name",
+          },
+          remainingBudget: {
+            type: "number",
+            description: "value of budget left ",
+          },
+        },
+        required: ["budget"],
       },
     },
   };
@@ -130,13 +149,25 @@ export default class GptClient {
     });
   }
 
+  async confirmAddedSpending(message: string, language: string) {
+    const prompt = `hey, i just spent: ${message} on alcohol. please save this information`;
+    return await this.complete({
+      systemMessage: `${this.basicContext}. Please provide response in this language code: ${language}. User is going to provide you his latest spending for alcohol. Inform user that this information has been stored. Do not ask him any questions. If there is no number i user message then you should ask him again to provide it.`,
+      userMessage: prompt,
+    });
+  }
+
+  async commentRemaingBudget(budget: number, language: string) {
+    const prompt = `hey, just want you provide me remaining value of my budget, in this language: ${language}`;
+    return await this.complete({
+      systemMessage: `${this.basicContext}. Please provide response in this language code: ${language}. this is user budget  ${budget},provide it to the user . dont ask any questions`,
+      userMessage: prompt,
+    });
+  }
+
   // Funkcja ma za zadanie skomentować trend zmian wydatków użytkownika w określonym czasie (z dnia na dzień, z tygodnia na tydzień)
   // TODO: timeBasis enum
-  async commentTrend(
-    trend: number,
-    language: string,
-    timeBasis: "day" | "week" | "month"
-  ) {
+  async commentTrend(trend: number, language: string, timeBasis: "day" | "week" | "month") {
     const systemMessage = `${this.basicContext} Rate, comment this trend of his spending on addiction: ${trend} (it's a ${timeBasis} to ${timeBasis} trend).  If it's negative please encourage him to do better, if it's positive praise him, give him more tips, and ask him why does he thinks so he's improved. Please provide response in language: ${language}`;
     // Coś w ten deseń.
     const userMessage = `Hey, this is my last trend ${trend}, what do you think about it?`;
@@ -165,6 +196,16 @@ export default class GptClient {
     });
   }
 
+  // async getRemaingBudget(
+  //   message: string,
+  //   language: string,
+  //   remainingBudget: number
+  // ) {
+  //   const systemMessage = `${this.basicContext} Provide user reamaining value of his bugdet - ${remainingBudget}for the rest of current month. Please provide response in language: ${language}`;
+  //   const userMessage = "Hey, tell how much budget i have left for this month";
+  //   return await this.complete({ systemMessage, userMessage });
+  // }
+
   async provideFunctionality(userMessage: string) {
     return this.completeWithTools({
       systemMessage: `${this.basicContext} Your main goal right now is to decide which functionalities should be used with user message.`,
@@ -174,13 +215,7 @@ export default class GptClient {
   }
 
   // feel free to extend to arrays if needed (passing whole convo)
-  async complete({
-    systemMessage,
-    userMessage,
-  }: {
-    systemMessage: string;
-    userMessage: string;
-  }) {
+  async complete({ systemMessage, userMessage }: { systemMessage: string; userMessage: string }) {
     const response = await this.callTemplate([
       { role: "system", content: systemMessage },
       { role: "user", content: userMessage },
