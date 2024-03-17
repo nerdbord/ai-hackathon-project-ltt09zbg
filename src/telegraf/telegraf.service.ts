@@ -1,19 +1,15 @@
-import { Telegraf, Context } from "telegraf";
-import GptClient from "../gpt/gpt.service";
-import {
-  getUserDataContext,
-  createUser,
-  updateMonthBudget,
-} from "../database/database.service";
-import { CreateUserPayload } from "../types/user.types";
 import { PrismaClient } from "@prisma/client";
+import { Context, Telegraf } from "telegraf";
+import { createUser, getUserDataContext } from "../database/database.service";
+import GptClient from "../gpt/gpt.service";
+import { CreateUserPayload } from "../types/user.types";
 
 const gptClient = new GptClient();
 const prisma = new PrismaClient();
 
 const getUserSession = (ctx: Context) => {
   const userPayload: CreateUserPayload = {
-    chatId: ctx.chat?.id || 0,
+    chatId: BigInt(ctx.chat?.id || 0),
     first_name: ctx.from?.first_name || "",
     last_name: ctx.from?.last_name || "",
     language_code: ctx.from?.language_code || "",
@@ -66,9 +62,7 @@ async function handleText(ctx: Context) {
       throw new Error("Context or message is undefined.");
     }
 
-    const userData: CreateUserPayload = await getUserDataContext(
-      getUserSession(ctx)
-    );
+    const userData: CreateUserPayload = await getUserDataContext(getUserSession(ctx));
 
     let userMessage = "";
 
@@ -80,6 +74,8 @@ async function handleText(ctx: Context) {
       // theh budget is uptade what is corrent,
       //but if we send another message, budget will be uptadig again
       // work only on comand /start in telegram
+      // const functionality = gptClient.provideFunctionality(userMessage);
+      // console.log(functionality);
       try {
         await prisma.userData.updateMany({
           where: {
@@ -90,13 +86,8 @@ async function handleText(ctx: Context) {
           },
         });
       } catch (error) {
-        console.error(
-          "Błąd podczas aktualizacji danych w bazie danych:",
-          error
-        );
-        ctx.reply(
-          `Przepraszam, wystąpił błąd podczas aktualizacji danych${error}`
-        );
+        console.error("Błąd podczas aktualizacji danych w bazie danych:", error);
+        ctx.reply(`Przepraszam, wystąpił błąd podczas aktualizacji danych${error}`);
       }
       // new uptade bellowe:
       // await updateMonthBudget(userPayload);
@@ -112,10 +103,7 @@ async function handleText(ctx: Context) {
     gptClient.userDataContext = userData;
     console.log(userData);
 
-    const response = await gptClient.commentBudget(
-      userMessage,
-      userData.language_code
-    );
+    const response = await gptClient.commentBudget(userMessage, userData.language_code);
     const botReply = response.choices[0].message?.content;
     ctx.reply(botReply);
 

@@ -21,7 +21,7 @@ export async function getUserDataContext(payload: CreateUserPayload) {
 
     if (userData) {
       const userDataPayload: CreateUserPayload = {
-        chatId: Number(userData?.chatId),
+        chatId: BigInt(userData?.chatId),
         first_name: userData?.first_name,
         last_name: userData?.last_name,
         language_code: userData?.language_code,
@@ -30,7 +30,7 @@ export async function getUserDataContext(payload: CreateUserPayload) {
 
       return userDataPayload;
     } else {
-      throw new Error("User data not found");
+      return createUser(payload);
     }
   } catch (error) {
     throw error;

@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export interface CreateUserPayload {
-  chatId: number;
+  chatId: bigint;
   first_name: string;
   last_name: string;
   language_code: string;
