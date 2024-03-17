@@ -91,7 +91,7 @@ async function handleText(ctx: Context) {
         switch (response.name) {
           case "updateMonthlyBudget":
             const newBudget = JSON.parse(response.arguments).budget;
-            updateMonthBudget(userData, newBudget);
+            updateMonthBudget(userData, newBudget, gptClient);
             const budgetString: string = newBudget.toString();
             const localResponse = await gptClient.commentBudget(
               newBudget.toString(), // Ensure newBudget is a string

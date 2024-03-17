@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { CreateUserPayload } from "../types/user.types";
+import GptClient from "../gpt/gpt.service";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
@@ -59,7 +60,8 @@ export async function createUser(payload: CreateUserPayload) {
 
 export async function updateMonthBudget(
   payload: CreateUserPayload,
-  newBudgetValue: number
+  newBudgetValue: number,
+  gptClient: GptClient
 ) {
   try {
     await prisma.userData.update({
@@ -70,6 +72,11 @@ export async function updateMonthBudget(
         monthlyBudget: newBudgetValue, // Używamy wartości z obiektu payload
       },
     });
+
+    const commentResponse = await gptClient.commentBudget(
+      newBudgetValue.toString(),
+      payload.language_code
+    );
   } catch (error) {
     console.error("Błąd podczas aktualizacji danych w bazie danych:", error);
     // W przypadku błędu, zwróć komunikat do obsługi
