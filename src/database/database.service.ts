@@ -1,15 +1,15 @@
-import { PrismaClient } from "@prisma/client";
-import { CreateUserPayload } from "../types/user.types";
+import { PrismaClient } from '@prisma/client';
+import { CreateUserPayload } from '../types/user.types';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    log: ["query"],
+    log: ['query'],
   });
 
-if (process.env.NODE_ENV != "production") globalForPrisma.prisma;
+if (process.env.NODE_ENV != 'production') globalForPrisma.prisma;
 
 export async function getUserDataContext(payload: CreateUserPayload) {
   try {
@@ -49,10 +49,10 @@ export async function createUser(payload: CreateUserPayload) {
         // Add other fields as needed
       },
     });
-    console.log("New user created!");
+    console.log('New user created!');
     return createdUser;
   } catch (error) {
-    console.error("Error creating user:", error);
+    console.error('Error creating user:', error);
     throw error;
   }
 }
@@ -71,8 +71,37 @@ export async function updateMonthBudget(
       },
     });
   } catch (error) {
-    console.error("Błąd podczas aktualizacji danych w bazie danych:", error);
+    console.error('Błąd podczas aktualizacji danych w bazie danych:', error);
     // W przypadku błędu, zwróć komunikat do obsługi
     throw error; // Rzucamy błąd dalej, aby obsłużyć go na wyższym poziomie
+  }
+}
+
+export async function createDailySpending(
+  payload: CreateUserPayload,
+  amount: number
+): Promise<void> {
+  console.log(' createDailySpending');
+  try {
+    const userData = await prisma.userData.findUnique({
+      where: {
+        chatId: payload.chatId,
+      },
+    });
+
+    if (!userData) {
+      throw new Error(`User with chatId ${payload.chatId} not found.`);
+    }
+
+    await prisma.dailySpending.create({
+      data: {
+        chatId: payload.chatId,
+        amount: parseFloat(amount.toFixed(2)),
+      },
+    });
+    console.log('New position in daily spending created successfully.');
+  } catch (error) {
+    console.error('Error creating new position in daily spending:', error);
+    throw error;
   }
 }

@@ -1,12 +1,13 @@
-import { PrismaClient } from "@prisma/client";
-import { Context, Telegraf } from "telegraf";
+import { PrismaClient } from '@prisma/client';
+import { Context, Telegraf } from 'telegraf';
 import {
+  createDailySpending,
   createUser,
   getUserDataContext,
   updateMonthBudget,
-} from "../database/database.service";
-import GptClient from "../gpt/gpt.service";
-import { CreateUserPayload } from "../types/user.types";
+} from '../database/database.service';
+import GptClient from '../gpt/gpt.service';
+import { CreateUserPayload } from '../types/user.types';
 
 const gptClient = new GptClient();
 const prisma = new PrismaClient();
@@ -14,9 +15,9 @@ const prisma = new PrismaClient();
 const getUserSession = (ctx: Context) => {
   const userPayload: CreateUserPayload = {
     chatId: BigInt(ctx.chat?.id || 0),
-    first_name: ctx.from?.first_name || "",
-    last_name: ctx.from?.last_name || "",
-    language_code: ctx.from?.language_code || "",
+    first_name: ctx.from?.first_name || '',
+    last_name: ctx.from?.last_name || '',
+    language_code: ctx.from?.language_code || '',
     monthly_budget: 0,
   };
   return userPayload;
@@ -26,7 +27,7 @@ export function initializeTelegramBot(apiKey: string) {
   const bot = new Telegraf(apiKey);
 
   bot.start(handleStart);
-  bot.on("text", handleText);
+  bot.on('text', handleText);
 
   return bot;
 }
@@ -48,7 +49,7 @@ async function handleStart(ctx: Context) {
     Number(userPayload.monthly_budget)
   );
   const botReply = response;
-  ctx.reply(typeof botReply === "string" ? botReply : JSON.stringify(botReply));
+  ctx.reply(typeof botReply === 'string' ? botReply : JSON.stringify(botReply));
 
   //save user data to db
 
@@ -64,16 +65,16 @@ async function handleStart(ctx: Context) {
 async function handleText(ctx: Context) {
   try {
     if (!ctx || !ctx.message) {
-      throw new Error("Context or message is undefined.");
+      throw new Error('Context or message is undefined.');
     }
 
     const userData: CreateUserPayload = await getUserDataContext(
       getUserSession(ctx)
     );
 
-    let userMessage = "";
+    let userMessage = '';
 
-    if ("text" in ctx.message) {
+    if ('text' in ctx.message) {
       userMessage = ctx.message.text;
 
       gptClient.userDataContext = userData;
@@ -85,11 +86,11 @@ async function handleText(ctx: Context) {
       //   userData.language_code
       // );
 
-      if (typeof response === "string") {
+      if (typeof response === 'string') {
         ctx.reply(response);
       } else {
         switch (response.name) {
-          case "updateMonthlyBudget":
+          case 'updateMonthlyBudget':
             const newBudget = JSON.parse(response.arguments).budget;
             updateMonthBudget(userData, newBudget);
             const budgetString: string = newBudget.toString();
@@ -99,13 +100,25 @@ async function handleText(ctx: Context) {
             );
 
             ctx.reply(`${localResponse}`);
+
+            break;
+          case 'updateSpendings':
+            const newSpending = JSON.parse(response.arguments).spending;
+            createDailySpending(userData, newSpending);
+            const spendingString: string = newSpending.toString();
+            const newSpendingResponse = await gptClient.confirmAddedSpending(
+              newSpending.toString(), // Ensure newBudget is a string
+              userData.language_code
+            );
+            ctx.reply(`${newSpendingResponse}`);
+            break;
           default:
-            console.log("no action");
+            console.log('no action');
         }
       }
     }
   } catch (error) {
-    console.error("Błąd podczas komunikacji:", error);
+    console.error('Błąd podczas komunikacji:', error);
     //ctx.reply("Przepraszam, coś poszło nie tak.");
   }
 }

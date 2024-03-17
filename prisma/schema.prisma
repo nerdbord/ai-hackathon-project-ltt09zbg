@@ -20,10 +20,10 @@ model userData {
 
 model dailySpending {
   id       String   @id @default(uuid())
-  userId   String
+  chatId   BigInt
   amount   Float
   date     DateTime @default(now())
-  userData userData @relation(fields: [userId], references: [id])
+  userData userData @relation(fields: [chatId], references: [chatId])
 }
 
 enum Sex {
