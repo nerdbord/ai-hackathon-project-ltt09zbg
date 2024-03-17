@@ -1,16 +1,25 @@
-import { Telegraf, Context } from "telegraf";
+import { PrismaClient } from "@prisma/client";
+import { Context, Telegraf } from "telegraf";
+import {
+  createUser,
+  getUserDataContext,
+  updateMonthBudget,
+} from "../database/database.service";
 import GptClient from "../gpt/gpt.service";
-import { createUser } from "../database/database.service";
 import { CreateUserPayload } from "../types/user.types";
 
 const gptClient = new GptClient();
+const prisma = new PrismaClient();
 
-let userPayload: CreateUserPayload = {
-  chatId: 0,
-  first_name: "",
-  last_name: "",
-  language_code: "",
-  monthly_budget: 0,
+const getUserSession = (ctx: Context) => {
+  const userPayload: CreateUserPayload = {
+    chatId: BigInt(ctx.chat?.id || 0),
+    first_name: ctx.from?.first_name || "",
+    last_name: ctx.from?.last_name || "",
+    language_code: ctx.from?.language_code || "",
+    monthly_budget: 0,
+  };
+  return userPayload;
 };
 
 export function initializeTelegramBot(apiKey: string) {
@@ -24,24 +33,24 @@ export function initializeTelegramBot(apiKey: string) {
 
 async function handleStart(ctx: Context) {
   //get user data from context
-  userPayload = {
-    chatId: ctx.chat?.id || 0,
-    first_name: ctx.from?.first_name || "",
-    last_name: ctx.from?.last_name || "",
-    language_code: ctx.from?.language_code || "",
-    monthly_budget: 0,
-  };
+
+  const userPayload = getUserSession(ctx);
+  const userData = await getUserDataContext(userPayload);
+
+  if (!userData) {
+    await createUser(userPayload);
+  }
 
   //bot behaviour on conversation start
-  const response = await gptClient.welcomeUser(
+  const response = await gptClient.welcomeNewUser(
     userPayload.first_name,
-    userPayload.language_code
+    userPayload.language_code,
+    Number(userPayload.monthly_budget)
   );
-  const botReply = response.choices[0].message?.content;
-  ctx.reply(botReply);
+  const botReply = response;
+  ctx.reply(typeof botReply === "string" ? botReply : JSON.stringify(botReply));
 
   //save user data to db
-  await createUser(userPayload);
 
   //   ctx.reply(
   //     `Witaj ${userPayload.first_name}! Dziękujemy, że dołączyłeś do naszego czatu.`
@@ -58,21 +67,43 @@ async function handleText(ctx: Context) {
       throw new Error("Context or message is undefined.");
     }
 
+    const userData: CreateUserPayload = await getUserDataContext(
+      getUserSession(ctx)
+    );
+
     let userMessage = "";
 
     if ("text" in ctx.message) {
       userMessage = ctx.message.text;
-    } else if ("new_chat_members" in ctx.message) {
-      // handle different type of message, if needed
+
+      gptClient.userDataContext = userData;
+      const response = await gptClient.provideFunctionality(userMessage);
+
+      console.log(response);
+      // const response = await gptClient.commentBudget(
+      //   userMessage,
+      //   userData.language_code
+      // );
+
+      if (typeof response === "string") {
+        ctx.reply(response);
+      } else {
+        switch (response.name) {
+          case "updateMonthlyBudget":
+            const newBudget = JSON.parse(response.arguments).budget;
+            updateMonthBudget(userData, newBudget);
+            const budgetString: string = newBudget.toString();
+            const localResponse = await gptClient.commentBudget(
+              newBudget.toString(), // Ensure newBudget is a string
+              userData.language_code
+            );
+
+            ctx.reply(`${localResponse}`);
+          default:
+            console.log("no action");
+        }
+      }
     }
-
-    const response = await gptClient.createCathegory(userMessage);
-
-    const botReply = response.choices[0].message?.content;
-    // albo przekierować do funkcji procesujących dane
-
-    // Odpowiedź użytkownikowi
-    ctx.reply(botReply);
   } catch (error) {
     console.error("Błąd podczas komunikacji:", error);
     //ctx.reply("Przepraszam, coś poszło nie tak.");

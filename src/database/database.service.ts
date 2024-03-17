@@ -11,6 +11,32 @@ export const prisma =
 
 if (process.env.NODE_ENV != "production") globalForPrisma.prisma;
 
+export async function getUserDataContext(payload: CreateUserPayload) {
+  try {
+    const userData = await prisma.userData.findFirst({
+      where: {
+        chatId: payload.chatId,
+      },
+    });
+
+    if (userData) {
+      const userDataPayload: CreateUserPayload = {
+        chatId: BigInt(userData?.chatId),
+        first_name: userData?.first_name,
+        last_name: userData?.last_name,
+        language_code: userData?.language_code,
+        monthly_budget: userData?.monthlyBudget,
+      };
+
+      return userDataPayload;
+    } else {
+      return createUser(payload);
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function createUser(payload: CreateUserPayload) {
   try {
     const createdUser = await prisma.userData.create({
@@ -23,9 +49,30 @@ export async function createUser(payload: CreateUserPayload) {
         // Add other fields as needed
       },
     });
+    console.log("New user created!");
     return createdUser;
   } catch (error) {
     console.error("Error creating user:", error);
     throw error;
+  }
+}
+
+export async function updateMonthBudget(
+  payload: CreateUserPayload,
+  newBudgetValue: number
+) {
+  try {
+    await prisma.userData.update({
+      where: {
+        chatId: BigInt(payload.chatId),
+      },
+      data: {
+        monthlyBudget: newBudgetValue, // Używamy wartości z obiektu payload
+      },
+    });
+  } catch (error) {
+    console.error("Błąd podczas aktualizacji danych w bazie danych:", error);
+    // W przypadku błędu, zwróć komunikat do obsługi
+    throw error; // Rzucamy błąd dalej, aby obsłużyć go na wyższym poziomie
   }
 }

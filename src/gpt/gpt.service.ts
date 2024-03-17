@@ -1,4 +1,5 @@
 require("dotenv").config();
+import { CreateUserPayload } from "../types/user.types";
 
 // only relevant info is included here
 type openAiResponse = {
@@ -15,44 +16,116 @@ export default class GptClient {
   model = "gpt-3.5-turbo";
   endpoint = "https://training.nerdbord.io/api/v1/openai/chat/completions";
   apiKey = process.env["OPENAI_API_KEY"] || null;
-  basicContext =
-    "You're user's good friend, he's trying to get rid of his addictions (drinking, smoking etc.), your goal is to help him to keep in control his addiction, and finally to reduce it to a minimum.";
+  userDataContext: CreateUserPayload = {
+    chatId: BigInt(0),
+    first_name: "",
+    last_name: "",
+    language_code: "",
+  };
+  basicContext = `You're user's good friend, he's trying to get rid of his addictions (drinking, smoking etc.), your goal is to help him to keep in control his addiction, and finally to reduce it to a minimum. If user exists you will recieve context data about him from database: ${this.userDataContext}`;
   // Funkcje służą do ekstrakcji z prompta usera danych by zwrócić JSON argumentów które funkcja mogłaby przyjąć w parametrach. (nie musi zwracać wszystkiego bo zależy co poda user)
   gptFunctions: { [key: string]: gptFunction } = {
-    createCathegory: {
-      description: "Function to create a cathegory",
-      name: "createCathegory",
-      parameters: {
-        type: "string",
-        name: "cathegoryName",
-      },
-    },
-    // TODO: FINISH THIS
     getTimePeriod: {
-      description: "Function to create a cathegory",
-      name: "createCathegory",
+      description:
+        "Function to get time period from user, response should be in a range of date format",
+      name: "getTimePeriod",
       parameters: {
-        type: "string",
-        name: "cathegoryName",
+        type: "object",
+        properties: {
+          startingDate: {
+            type: "object",
+            description: "beginning date of time period",
+            properties: {
+              year: {
+                type: "string",
+                description: "year of time period",
+              },
+              month: {
+                type: "string",
+                description: "month of time period",
+              },
+              day: {
+                type: "string",
+                description: "day of time period",
+              },
+            },
+          },
+          finishDate: {
+            type: "object",
+            description: "end date of time period",
+            properties: {
+              year: {
+                type: "string",
+                description: "year of time period",
+              },
+              month: {
+                type: "string",
+                description: "month of time period",
+              },
+              day: {
+                type: "string",
+                description: "day of time period",
+              },
+            },
+          },
+        },
+        required: ["startingDate", "finishDate"],
       },
     },
-
-    welcomeUser: {
-      description: "Function to welcome user",
-      name: "welcomeUser",
+    updateMonthlyBudget: {
+      description:
+        "Function to get from message user monthly budget for alcohol, so it can be stored in database. ",
+      name: "updateMonthlyBudget",
       parameters: {
-        type: "string",
-        name: "name",
+        type: "object",
+        properties: {
+          budget: {
+            type: "number",
+            description: "monthly budget for addiction",
+          },
+        },
+        required: ["budget"],
+      },
+    },
+    updateSpendings: {
+      description:
+        "Function is used to update daily spendings for addiction, based on his today spendings. It should be considered as a spending.",
+      name: "updateBudgetSpendings",
+      parameters: {
+        type: "object",
+        properties: {
+          spending: {
+            type: "number",
+            description:
+              "todays spending on addiction to detract from monthly budget",
+          },
+        },
+        required: ["spending"],
       },
     },
   };
   constructor() {}
 
-  // nie jestem pewien czy to jest wgl potrzebne.
-  async welcomeUser(name: string, language: string) {
+  async welcomeUser(name: string, language: string, monthlyBudget: number) {
     const prompt = `Hi!, My name is ${name}`;
     return await this.complete({
-      systemMessage: `${this.basicContext}. User's going to provide you his name, and you should greet him using his name. Greeting should be different every time and should have at least 30 words. Please provide response in language: ${language}. And ask user about his monthly budget for alcohol, user must write back number `,
+      systemMessage: `${this.basicContext}. You should greet user using his name. Greeting should be different every time and should have at least 30 words. Please provide response in language: ${language}. Ask user if he had any spendings on alcohol.`,
+      userMessage: prompt,
+    });
+  }
+
+  async welcomeNewUser(name: string, language: string, monthlyBudget: number) {
+    const prompt = `Hi!, My name is ${name}`;
+    return await this.complete({
+      systemMessage: `${this.basicContext}. , and you should greet him using his name. Greeting should be different every time and should have at least 30 words. Please provide response in language: ${language}. And ask user about his monthly budget for alcohol, user must write back number `,
+      userMessage: prompt,
+    });
+  }
+
+  async commentBudget(message: string, language: string) {
+    const prompt = `Sure, my monthly budget for alcohol is: ${message}`;
+    return await this.complete({
+      systemMessage: `${this.basicContext}. Please provide response in this language code: ${language}. User is going to provide you his monthly budget for alcohol. You should comment it. If it is more then 500 you should tell him gently that it is too much. otherwise it is always more than he think it is ok. If there is no number i user message then you should ask him again to provide it.`,
       userMessage: prompt,
     });
   }
@@ -72,15 +145,14 @@ export default class GptClient {
   }
 
   // Funkcja ma za zadanie sporządzić podsumowanie wydatków, trendów wydatków na używki użytkownika.
-  // todo: ogarnąć okres. + Ogarnąć funkcję używającą tool'ów by ogarnąć dane od użytkownika od kiedy do kiedy chce podsumować.
   // spendingData = JSON?
   async periodicalSummary(
     spendingData: string,
     language: string,
-    period: "od 9 września 2022 do 13 września 2023"
+    periodMessage: "od 9 września 2022 do 13 września 2023"
   ) {
-    const systemMessage = `${this.basicContext} Provide summary of his spending on addiction over the period: ${period}, you could distunguish trends during smaller periods, and comment on them, aswell as decide if overally he's going in the good direction. Please provide response in language: ${language}`;
-    const userMessage = `Hey, i'll give you data of my spending during this period ${period}. The data: ${spendingData}. What do you think about it?`;
+    const systemMessage = `${this.basicContext} Provide summary of his spending on addiction over the period: ${periodMessage}, you could distunguish trends during smaller periods, and comment on them, aswell as decide if overally he's going in the good direction. Please provide response in language: ${language}`;
+    const userMessage = `Hey, i'll give you data of my spending during this period ${periodMessage}. The data: ${spendingData}. What do you think about it?`;
     return await this.complete({ systemMessage, userMessage });
   }
 
@@ -93,12 +165,11 @@ export default class GptClient {
     });
   }
 
-  // przykładowa funkcja która będzie używana do tworzenia kategorii.
-  async createCathegory(name: string) {
-    const prompt = `create a cathegory named ${name}`;
-    return await this.complete({
-      systemMessage: "You're a helpful assistant",
-      userMessage: prompt,
+  async provideFunctionality(userMessage: string) {
+    return this.completeWithTools({
+      systemMessage: `${this.basicContext} Your main goal right now is to decide which functionalities should be used with user message.`,
+      userMessage,
+      functions: [...Object.values(this.gptFunctions)],
     });
   }
 
@@ -142,11 +213,10 @@ export default class GptClient {
     messages: { role: string; content: string }[],
     tools?: gptTool[],
     temperature?: number
-  ): Promise<openAiResponse> {
+  ): Promise<string | { name: string; arguments: string }> {
     if (!this.apiKey) {
       throw new Error("API key is not defined");
     }
-
     const response = await fetch(this.endpoint, {
       method: "POST",
       headers: {
@@ -154,10 +224,10 @@ export default class GptClient {
         Authorization: `${this.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.model,
         messages,
         tools,
         n: 1,
+        // tool_choice: "auto",
       }),
     });
 
@@ -168,12 +238,22 @@ export default class GptClient {
     if (!response.ok) {
       throw new Error(`Request failed with status ${response.status}`);
     }
-
     const data = await response.json();
     if (!data) {
       throw new Error("Data is null");
     }
-    return data as openAiResponse;
+    if (tools) {
+      try {
+        return data.choices[0].message.tool_calls[0].function as {
+          name: string;
+          arguments: string;
+        };
+      } catch (e) {
+        return data.choices[0].message?.content;
+      }
+    } else {
+      return data.choices[0].message?.content;
+    }
   }
 
   createTool(gptFunction: gptFunction): gptTool {
@@ -185,7 +265,20 @@ type gptFunction = {
   description: string;
   name: string;
   parameters: {
-    [key: string]: string;
+    type: string;
+    properties: {
+      [key: string]: {
+        type: any;
+        description: string;
+        properties?: {
+          [key: string]: {
+            type: any;
+            description: string;
+          };
+        };
+      };
+    };
+    required?: string[];
   };
 };
 
