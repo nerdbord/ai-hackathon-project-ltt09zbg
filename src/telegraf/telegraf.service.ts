@@ -5,6 +5,7 @@ import {
   createUser,
   getUserDataContext,
   updateMonthBudget,
+  getRemainingBudget,
 } from "../database/database.service";
 import GptClient from "../gpt/gpt.service";
 import { CreateUserPayload } from "../types/user.types";
@@ -92,8 +93,14 @@ async function handleText(ctx: Context) {
         switch (response.name) {
           case "updateMonthlyBudget":
             const newBudget = JSON.parse(response.arguments).budget;
-            updateMonthBudget(userData, newBudget, gptClient);
-            break;
+            updateMonthBudget(userData, newBudget);
+            const budgetString: string = newBudget.toString();
+            const localResponse = await gptClient.commentBudget(
+              newBudget.toString(), // Ensure newBudget is a string
+              userData.language_code
+            );
+
+            ctx.reply(`${localResponse}`);
 
             break;
           case "updateSpendings":
@@ -105,6 +112,15 @@ async function handleText(ctx: Context) {
               userData.language_code
             );
             ctx.reply(`${newSpendingResponse}`);
+            break;
+
+          case "getRemaingBudget":
+            const remainingBudget = await getRemainingBudget(userData);
+            const budgetResponse = await gptClient.commentRemaingBudget(
+              remainingBudget ? remainingBudget : 0,
+              userData.language_code
+            );
+            ctx.reply(`${budgetResponse}`);
             break;
           default:
             console.log("no action");

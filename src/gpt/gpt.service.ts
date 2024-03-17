@@ -1,5 +1,5 @@
-require('dotenv').config();
-import { CreateUserPayload } from '../types/user.types';
+require("dotenv").config();
+import { CreateUserPayload } from "../types/user.types";
 
 // only relevant info is included here
 type openAiResponse = {
@@ -13,94 +13,116 @@ type openAiResponse = {
 };
 
 export default class GptClient {
-  model = 'gpt-3.5-turbo';
-  endpoint = 'https://training.nerdbord.io/api/v1/openai/chat/completions';
-  apiKey = process.env['OPENAI_API_KEY'] || null;
+  model = "gpt-3.5-turbo";
+  endpoint = "https://training.nerdbord.io/api/v1/openai/chat/completions";
+  apiKey = process.env["OPENAI_API_KEY"] || null;
   userDataContext: CreateUserPayload = {
     chatId: BigInt(0),
-    first_name: '',
-    last_name: '',
-    language_code: '',
+    first_name: "",
+    last_name: "",
+    language_code: "",
   };
   basicContext = `You're user's good friend, he's trying to get rid of his addictions (drinking, smoking etc.), your goal is to help him to keep in control his addiction, and finally to reduce it to a minimum. If user exists you will recieve context data about him from database: ${this.userDataContext}`;
   // Funkcje służą do ekstrakcji z prompta usera danych by zwrócić JSON argumentów które funkcja mogłaby przyjąć w parametrach. (nie musi zwracać wszystkiego bo zależy co poda user)
   gptFunctions: { [key: string]: gptFunction } = {
     getTimePeriod: {
       description:
-        'Function to get time period from user, response should be in a range of date format',
-      name: 'getTimePeriod',
+        "Function to get time period from user, response should be in a range of date format",
+      name: "getTimePeriod",
       parameters: {
-        type: 'object',
+        type: "object",
         properties: {
           startingDate: {
-            type: 'object',
-            description: 'beginning date of time period',
+            type: "object",
+            description: "beginning date of time period",
             properties: {
               year: {
-                type: 'string',
-                description: 'year of time period',
+                type: "string",
+                description: "year of time period",
               },
               month: {
-                type: 'string',
-                description: 'month of time period',
+                type: "string",
+                description: "month of time period",
               },
               day: {
-                type: 'string',
-                description: 'day of time period',
+                type: "string",
+                description: "day of time period",
               },
             },
           },
           finishDate: {
-            type: 'object',
-            description: 'end date of time period',
+            type: "object",
+            description: "end date of time period",
             properties: {
               year: {
-                type: 'string',
-                description: 'year of time period',
+                type: "string",
+                description: "year of time period",
               },
               month: {
-                type: 'string',
-                description: 'month of time period',
+                type: "string",
+                description: "month of time period",
               },
               day: {
-                type: 'string',
-                description: 'day of time period',
+                type: "string",
+                description: "day of time period",
               },
             },
           },
         },
-        required: ['startingDate', 'finishDate'],
+        required: ["startingDate", "finishDate"],
       },
     },
     updateMonthlyBudget: {
       description:
-        'Function to get from message user monthly budget for alcohol, so it can be stored in database. ',
-      name: 'updateMonthlyBudget',
+        "Function to get from message user monthly budget for alcohol, so it can be stored in database. ",
+      name: "updateMonthlyBudget",
       parameters: {
-        type: 'object',
+        type: "object",
         properties: {
           budget: {
-            type: 'number',
-            description: 'monthly budget for addiction',
+            type: "number",
+            description: "monthly budget for addiction",
           },
         },
-        required: ['budget'],
+        required: ["budget"],
       },
     },
     updateSpendings: {
       description:
         "Function is used to update daily spendings for addiction, based on his today spendings. It should be considered as a spending. If user's providing you info about his spending or that hi recently bought something you should use this.",
-      name: 'updateSpendings',
+      name: "updateSpendings",
       parameters: {
-        type: 'object',
+        type: "object",
         properties: {
           spending: {
-            type: 'number',
+            type: "number",
             description:
-              'todays spending on addiction to detract from monthly budget',
+              "todays spending on addiction to detract from monthly budget",
           },
         },
-        required: ['spending'],
+        required: ["spending"],
+      },
+    },
+    getRemaingBudget: {
+      description: "provide user the value of remeaning budget",
+      name: "getRemaingBudget",
+      parameters: {
+        type: "object",
+        properties: {
+          message: {
+            type: "string",
+            description: "monthly budget for addiction",
+          },
+          language: {
+            type: "string",
+            description: "language name",
+          },
+          remainingBudget: {
+            type: "number",
+            description: "value of budget left ",
+          },
+        },
+        required: ["budget"],
       },
     },
   };
@@ -138,12 +160,20 @@ export default class GptClient {
     });
   }
 
+  async commentRemaingBudget(budget: number, language: string) {
+    const prompt = `hey, just want you provide me remaining value of my budget, in this language: ${language}`;
+    return await this.complete({
+      systemMessage: `${this.basicContext}. Please provide response in this language code: ${language}. this is user budget  ${budget},provide it to the user . dont ask any questions`,
+      userMessage: prompt,
+    });
+  }
+
   // Funkcja ma za zadanie skomentować trend zmian wydatków użytkownika w określonym czasie (z dnia na dzień, z tygodnia na tydzień)
   // TODO: timeBasis enum
   async commentTrend(
     trend: number,
     language: string,
-    timeBasis: 'day' | 'week' | 'month'
+    timeBasis: "day" | "week" | "month"
   ) {
     const systemMessage = `${this.basicContext} Rate, comment this trend of his spending on addiction: ${trend} (it's a ${timeBasis} to ${timeBasis} trend).  If it's negative please encourage him to do better, if it's positive praise him, give him more tips, and ask him why does he thinks so he's improved. Please provide response in language: ${language}`;
     // Coś w ten deseń.
@@ -157,7 +187,7 @@ export default class GptClient {
   async periodicalSummary(
     spendingData: string,
     language: string,
-    periodMessage: 'od 9 września 2022 do 13 września 2023'
+    periodMessage: "od 9 września 2022 do 13 września 2023"
   ) {
     const systemMessage = `${this.basicContext} Provide summary of his spending on addiction over the period: ${periodMessage}, you could distunguish trends during smaller periods, and comment on them, aswell as decide if overally he's going in the good direction. Please provide response in language: ${language}`;
     const userMessage = `Hey, i'll give you data of my spending during this period ${periodMessage}. The data: ${spendingData}. What do you think about it?`;
@@ -172,6 +202,16 @@ export default class GptClient {
       functions: [tool],
     });
   }
+
+  // async getRemaingBudget(
+  //   message: string,
+  //   language: string,
+  //   remainingBudget: number
+  // ) {
+  //   const systemMessage = `${this.basicContext} Provide user reamaining value of his bugdet - ${remainingBudget}for the rest of current month. Please provide response in language: ${language}`;
+  //   const userMessage = "Hey, tell how much budget i have left for this month";
+  //   return await this.complete({ systemMessage, userMessage });
+  // }
 
   async provideFunctionality(userMessage: string) {
     return this.completeWithTools({
@@ -190,8 +230,8 @@ export default class GptClient {
     userMessage: string;
   }) {
     const response = await this.callTemplate([
-      { role: 'system', content: systemMessage },
-      { role: 'user', content: userMessage },
+      { role: "system", content: systemMessage },
+      { role: "user", content: userMessage },
     ]);
     return response;
   }
@@ -205,9 +245,9 @@ export default class GptClient {
     userMessage: string;
     functions: gptFunction[];
   }) {
-    const messages = [{ role: 'user', content: userMessage }];
+    const messages = [{ role: "user", content: userMessage }];
     if (systemMessage) {
-      messages.unshift({ role: 'system', content: systemMessage });
+      messages.unshift({ role: "system", content: systemMessage });
     }
     const response = await this.callTemplate(
       messages,
@@ -223,12 +263,12 @@ export default class GptClient {
     temperature?: number
   ): Promise<string | { name: string; arguments: string }> {
     if (!this.apiKey) {
-      throw new Error('API key is not defined');
+      throw new Error("API key is not defined");
     }
     const response = await fetch(this.endpoint, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `${this.apiKey}`,
       },
       body: JSON.stringify({
@@ -240,7 +280,7 @@ export default class GptClient {
     });
 
     if (!response) {
-      throw new Error('Response is null');
+      throw new Error("Response is null");
     }
 
     if (!response.ok) {
@@ -248,7 +288,7 @@ export default class GptClient {
     }
     const data = await response.json();
     if (!data) {
-      throw new Error('Data is null');
+      throw new Error("Data is null");
     }
     if (tools) {
       try {
@@ -265,7 +305,7 @@ export default class GptClient {
   }
 
   createTool(gptFunction: gptFunction): gptTool {
-    return { type: 'function', function: gptFunction };
+    return { type: "function", function: gptFunction };
   }
 }
 
@@ -291,6 +331,6 @@ type gptFunction = {
 };
 
 type gptTool = {
-  type: 'function';
+  type: "function";
   function: gptFunction;
 };

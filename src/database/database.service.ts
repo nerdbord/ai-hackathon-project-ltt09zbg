@@ -60,8 +60,7 @@ export async function createUser(payload: CreateUserPayload) {
 
 export async function updateMonthBudget(
   payload: CreateUserPayload,
-  newBudgetValue: number,
-  gptClient: GptClient
+  newBudgetValue: number
 ) {
   try {
     await prisma.userData.update({
@@ -72,11 +71,6 @@ export async function updateMonthBudget(
         monthlyBudget: newBudgetValue, // Używamy wartości z obiektu payload
       },
     });
-
-    const commentResponse = await gptClient.commentBudget(
-      newBudgetValue.toString(),
-      payload.language_code
-    );
   } catch (error) {
     console.error("Błąd podczas aktualizacji danych w bazie danych:", error);
     // W przypadku błędu, zwróć komunikat do obsługi
@@ -109,6 +103,42 @@ export async function createDailySpending(
     console.log("New position in daily spending created successfully.");
   } catch (error) {
     console.error("Error creating new position in daily spending:", error);
+    throw error;
+  }
+}
+
+export async function getRemainingBudget(payload: CreateUserPayload) {
+  try {
+    const userData = await prisma.userData.findFirst({
+      where: {
+        chatId: payload.chatId,
+      },
+    });
+
+    if (!userData) {
+      throw new Error("User data not found");
+    }
+
+    const userSpendings = await prisma.dailySpending.findMany({
+      where: {
+        chatId: payload.chatId,
+      },
+    });
+
+    // Calculate total spending
+    let totalSpending = 0;
+    userSpendings.forEach((spending) => {
+      totalSpending += spending.amount;
+    });
+
+    // Handle case when monthlyBudget is null
+    const remainingBudget =
+      userData.monthlyBudget != null
+        ? userData.monthlyBudget - totalSpending
+        : null;
+
+    return remainingBudget;
+  } catch (error) {
     throw error;
   }
 }
