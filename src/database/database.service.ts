@@ -83,3 +83,32 @@ export async function updateMonthBudget(
     throw error; // Rzucamy błąd dalej, aby obsłużyć go na wyższym poziomie
   }
 }
+
+export async function createDailySpending(
+  payload: CreateUserPayload,
+  amount: number
+): Promise<void> {
+  console.log(" createDailySpending");
+  try {
+    const userData = await prisma.userData.findUnique({
+      where: {
+        chatId: payload.chatId,
+      },
+    });
+
+    if (!userData) {
+      throw new Error(`User with chatId ${payload.chatId} not found.`);
+    }
+
+    await prisma.dailySpending.create({
+      data: {
+        chatId: payload.chatId,
+        amount: parseFloat(amount.toFixed(2)),
+      },
+    });
+    console.log("New position in daily spending created successfully.");
+  } catch (error) {
+    console.error("Error creating new position in daily spending:", error);
+    throw error;
+  }
+}

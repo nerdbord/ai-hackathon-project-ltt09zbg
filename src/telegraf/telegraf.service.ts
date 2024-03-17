@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Context, Telegraf } from "telegraf";
 import {
+  createDailySpending,
   createUser,
   getUserDataContext,
   updateMonthBudget,
@@ -92,6 +93,18 @@ async function handleText(ctx: Context) {
           case "updateMonthlyBudget":
             const newBudget = JSON.parse(response.arguments).budget;
             updateMonthBudget(userData, newBudget, gptClient);
+            break;
+
+            break;
+          case "updateSpendings":
+            const newSpending = JSON.parse(response.arguments).spending;
+            createDailySpending(userData, newSpending);
+            const spendingString: string = newSpending.toString();
+            const newSpendingResponse = await gptClient.confirmAddedSpending(
+              newSpending.toString(), // Ensure newBudget is a string
+              userData.language_code
+            );
+            ctx.reply(`${newSpendingResponse}`);
             break;
           default:
             console.log("no action");
