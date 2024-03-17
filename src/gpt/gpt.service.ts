@@ -26,7 +26,8 @@ export default class GptClient {
   // Funkcje służą do ekstrakcji z prompta usera danych by zwrócić JSON argumentów które funkcja mogłaby przyjąć w parametrach. (nie musi zwracać wszystkiego bo zależy co poda user)
   gptFunctions: { [key: string]: gptFunction } = {
     getTimePeriod: {
-      description: "Function to get time period from user, response should be in a range of date format",
+      description:
+        "Function to get time period from user, response should be in a range of date format",
       name: "getTimePeriod",
       parameters: {
         type: "object",
@@ -72,7 +73,8 @@ export default class GptClient {
       },
     },
     updateMonthlyBudget: {
-      description: "Function to get from message user monthly budget for alcohol, so it can be stored in database.",
+      description:
+        "Function to get from message user monthly budget for alcohol, so it can be stored in database. ",
       name: "updateMonthlyBudget",
       parameters: {
         type: "object",
@@ -94,7 +96,8 @@ export default class GptClient {
         properties: {
           spending: {
             type: "number",
-            description: "todays spending on addiction to detract from monthly budget",
+            description:
+              "todays spending on addiction to detract from monthly budget",
           },
         },
         required: ["spending"],
@@ -129,7 +132,11 @@ export default class GptClient {
 
   // Funkcja ma za zadanie skomentować trend zmian wydatków użytkownika w określonym czasie (z dnia na dzień, z tygodnia na tydzień)
   // TODO: timeBasis enum
-  async commentTrend(trend: number, language: string, timeBasis: "day" | "week" | "month") {
+  async commentTrend(
+    trend: number,
+    language: string,
+    timeBasis: "day" | "week" | "month"
+  ) {
     const systemMessage = `${this.basicContext} Rate, comment this trend of his spending on addiction: ${trend} (it's a ${timeBasis} to ${timeBasis} trend).  If it's negative please encourage him to do better, if it's positive praise him, give him more tips, and ask him why does he thinks so he's improved. Please provide response in language: ${language}`;
     // Coś w ten deseń.
     const userMessage = `Hey, this is my last trend ${trend}, what do you think about it?`;
@@ -167,7 +174,13 @@ export default class GptClient {
   }
 
   // feel free to extend to arrays if needed (passing whole convo)
-  async complete({ systemMessage, userMessage }: { systemMessage: string; userMessage: string }) {
+  async complete({
+    systemMessage,
+    userMessage,
+  }: {
+    systemMessage: string;
+    userMessage: string;
+  }) {
     const response = await this.callTemplate([
       { role: "system", content: systemMessage },
       { role: "user", content: userMessage },

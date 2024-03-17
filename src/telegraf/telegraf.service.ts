@@ -92,16 +92,17 @@ async function handleText(ctx: Context) {
           case "updateMonthlyBudget":
             const newBudget = JSON.parse(response.arguments).budget;
             updateMonthBudget(userData, newBudget);
-            //console.log(userData);
-            break;
+            const budgetString: string = newBudget.toString();
+            const localResponse = await gptClient.commentBudget(
+              newBudget.toString(), // Ensure newBudget is a string
+              userData.language_code
+            );
+
+            ctx.reply(`${localResponse}`);
           default:
             console.log("no action");
         }
       }
-
-      // ctx.reply(
-      //    ? response : JSON.stringify(response)
-      // );
     }
   } catch (error) {
     console.error("Błąd podczas komunikacji:", error);
