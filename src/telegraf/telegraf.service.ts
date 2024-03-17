@@ -29,6 +29,7 @@ export function initializeTelegramBot(apiKey: string) {
 
 async function handleStart(ctx: Context) {
   //get user data from context
+
   const userPayload = getUserSession(ctx);
   const userData = await getUserDataContext(userPayload);
 
