@@ -1,26 +1,43 @@
-import { PrismaClient } from '@prisma/client';
-import { CreateUserPayload } from '../types/user.types';
+import { PrismaClient } from "@prisma/client";
+import { CreateUserPayload } from "../types/user.types";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    log: ['query'],
+    log: ["query"],
   });
 
-if (process.env.NODE_ENV != 'production') globalForPrisma.prisma;
+if (process.env.NODE_ENV != "production") globalForPrisma.prisma;
+
+export async function getUserDataContext(payload: CreateUserPayload) {
+  try {
+    const userData = await prisma.userData.findFirst({
+      where: {
+        chatId: payload.chatId,
+      },
+    });
+
+    if (userData) {
+      const userDataPayload: CreateUserPayload = {
+        chatId: Number(userData?.chatId),
+        first_name: userData?.first_name,
+        last_name: userData?.last_name,
+        language_code: userData?.language_code,
+        monthly_budget: userData?.monthlyBudget,
+      };
+
+      return userDataPayload;
+    } else {
+      throw new Error("User data not found");
+    }
+  } catch (error) {
+    throw error;
+  }
+}
 
 export async function createUser(payload: CreateUserPayload) {
-  const existingUser = await prisma.userData.findFirst({
-    where: {
-      chatId: payload.chatId,
-    },
-  });
-  console.log('User already created!');
-  console.log(existingUser);
-  if (existingUser) return;
-
   try {
     const createdUser = await prisma.userData.create({
       data: {
@@ -32,10 +49,10 @@ export async function createUser(payload: CreateUserPayload) {
         // Add other fields as needed
       },
     });
-    console.log('New user created!');
+    console.log("New user created!");
     return createdUser;
   } catch (error) {
-    console.error('Error creating user:', error);
+    console.error("Error creating user:", error);
     throw error;
   }
 }
@@ -51,7 +68,7 @@ export async function updateMonthBudget(payload: CreateUserPayload) {
       },
     });
   } catch (error) {
-    console.error('Błąd podczas aktualizacji danych w bazie danych:', error);
+    console.error("Błąd podczas aktualizacji danych w bazie danych:", error);
     // W przypadku błędu, zwróć komunikat do obsługi
     throw error; // Rzucamy błąd dalej, aby obsłużyć go na wyższym poziomie
   }

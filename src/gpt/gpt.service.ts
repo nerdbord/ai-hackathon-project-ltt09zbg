@@ -1,4 +1,5 @@
-require('dotenv').config();
+require("dotenv").config();
+import { CreateUserPayload } from "../types/user.types";
 
 // only relevant info is included here
 type openAiResponse = {
@@ -12,54 +13,69 @@ type openAiResponse = {
 };
 
 export default class GptClient {
-  model = 'gpt-3.5-turbo';
-  endpoint = 'https://training.nerdbord.io/api/v1/openai/chat/completions';
-  apiKey = process.env['OPENAI_API_KEY'] || null;
-  basicContext =
-    "You're user's good friend, he's trying to get rid of his addictions (drinking, smoking etc.), your goal is to help him to keep in control his addiction, and finally to reduce it to a minimum.";
+  model = "gpt-3.5-turbo";
+  endpoint = "https://training.nerdbord.io/api/v1/openai/chat/completions";
+  apiKey = process.env["OPENAI_API_KEY"] || null;
+  userDataContext!: CreateUserPayload;
+  basicContext = `You're user's good friend, he's trying to get rid of his addictions (drinking, smoking etc.), your goal is to help him to keep in control his addiction, and finally to reduce it to a minimum. If user exists you will recieve context data about him from database: ${this.userDataContext}`;
   // Funkcje służą do ekstrakcji z prompta usera danych by zwrócić JSON argumentów które funkcja mogłaby przyjąć w parametrach. (nie musi zwracać wszystkiego bo zależy co poda user)
   gptFunctions: { [key: string]: gptFunction } = {
     createCathegory: {
-      description: 'Function to create a cathegory',
-      name: 'createCathegory',
+      description: "Function to create a cathegory",
+      name: "createCathegory",
       parameters: {
-        type: 'string',
-        name: 'cathegoryName',
+        type: "string",
+        name: "cathegoryName",
       },
     },
     // TODO: FINISH THIS
     getTimePeriod: {
-      description: 'Function to create a cathegory',
-      name: 'createCathegory',
+      description: "Function to create a cathegory",
+      name: "createCathegory",
       parameters: {
-        type: 'string',
-        name: 'cathegoryName',
+        type: "string",
+        name: "cathegoryName",
       },
     },
     welcomeUser: {
-      description: 'Function to welcome user',
-      name: 'welcomeUser',
+      description: "Function to welcome user",
+      name: "welcomeUser",
       parameters: {
-        type: 'string',
-        name: 'name',
+        type: "string",
+        name: "name",
+      },
+    },
+    welcomeNewUser: {
+      description: "Function to new welcome user",
+      name: "welcomeNewUser",
+      parameters: {
+        type: "string",
+        name: "name",
       },
     },
     commentBudget: {
-      description: 'Function to comment user monthly budget for alcohol',
-      name: 'commentBudget',
+      description: "Function to comment user monthly budget for alcohol",
+      name: "commentBudget",
       parameters: {
-        type: 'string',
-        name: 'message',
+        type: "string",
+        name: "message",
       },
     },
   };
   constructor() {}
 
-  // nie jestem pewien czy to jest wgl potrzebne.
   async welcomeUser(name: string, language: string, monthlyBudget: number) {
     const prompt = `Hi!, My name is ${name}`;
     return await this.complete({
-      systemMessage: `${this.basicContext}. User's going to provide you his name, and you should greet him using his name. Greeting should be different every time and should have at least 30 words. Please provide response in language: ${language}. And ask user about his monthly budget for alcohol, user must write back number `,
+      systemMessage: `${this.basicContext}. You should greet user using his name. Greeting should be different every time and should have at least 30 words. Please provide response in language: ${language}. Ask user if he had any spendings on alcohol.`,
+      userMessage: prompt,
+    });
+  }
+
+  async welcomeNewUser(name: string, language: string, monthlyBudget: number) {
+    const prompt = `Hi!, My name is ${name}`;
+    return await this.complete({
+      systemMessage: `${this.basicContext}. , and you should greet him using his name. Greeting should be different every time and should have at least 30 words. Please provide response in language: ${language}. And ask user about his monthly budget for alcohol, user must write back number `,
       userMessage: prompt,
     });
   }
@@ -77,7 +93,7 @@ export default class GptClient {
   async commentTrend(
     trend: number,
     language: string,
-    timeBasis: 'day' | 'week' | 'month'
+    timeBasis: "day" | "week" | "month"
   ) {
     const systemMessage = `${this.basicContext} Rate, comment this trend of his spending on addiction: ${trend} (it's a ${timeBasis} to ${timeBasis} trend).  If it's negative please encourage him to do better, if it's positive praise him, give him more tips, and ask him why does he thinks so he's improved. Please provide response in language: ${language}`;
     // Coś w ten deseń.
@@ -92,7 +108,7 @@ export default class GptClient {
   async periodicalSummary(
     spendingData: string,
     language: string,
-    period: 'od 9 września 2022 do 13 września 2023'
+    period: "od 9 września 2022 do 13 września 2023"
   ) {
     const systemMessage = `${this.basicContext} Provide summary of his spending on addiction over the period: ${period}, you could distunguish trends during smaller periods, and comment on them, aswell as decide if overally he's going in the good direction. Please provide response in language: ${language}`;
     const userMessage = `Hey, i'll give you data of my spending during this period ${period}. The data: ${spendingData}. What do you think about it?`;
@@ -126,8 +142,8 @@ export default class GptClient {
     userMessage: string;
   }) {
     const response = await this.callTemplate([
-      { role: 'system', content: systemMessage },
-      { role: 'user', content: userMessage },
+      { role: "system", content: systemMessage },
+      { role: "user", content: userMessage },
     ]);
     return response;
   }
@@ -141,9 +157,9 @@ export default class GptClient {
     userMessage: string;
     functions: gptFunction[];
   }) {
-    const messages = [{ role: 'user', content: userMessage }];
+    const messages = [{ role: "user", content: userMessage }];
     if (systemMessage) {
-      messages.unshift({ role: 'system', content: systemMessage });
+      messages.unshift({ role: "system", content: systemMessage });
     }
     const response = await this.callTemplate(
       messages,
@@ -159,13 +175,13 @@ export default class GptClient {
     temperature?: number
   ): Promise<openAiResponse> {
     if (!this.apiKey) {
-      throw new Error('API key is not defined');
+      throw new Error("API key is not defined");
     }
 
     const response = await fetch(this.endpoint, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `${this.apiKey}`,
       },
       body: JSON.stringify({
@@ -177,7 +193,7 @@ export default class GptClient {
     });
 
     if (!response) {
-      throw new Error('Response is null');
+      throw new Error("Response is null");
     }
 
     if (!response.ok) {
@@ -186,13 +202,13 @@ export default class GptClient {
 
     const data = await response.json();
     if (!data) {
-      throw new Error('Data is null');
+      throw new Error("Data is null");
     }
     return data as openAiResponse;
   }
 
   createTool(gptFunction: gptFunction): gptTool {
-    return { type: 'function', function: gptFunction };
+    return { type: "function", function: gptFunction };
   }
 }
 
@@ -205,6 +221,6 @@ type gptFunction = {
 };
 
 type gptTool = {
-  type: 'function';
+  type: "function";
   function: gptFunction;
 };
