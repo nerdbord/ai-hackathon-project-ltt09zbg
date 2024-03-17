@@ -92,13 +92,7 @@ async function handleText(ctx: Context) {
           case "updateMonthlyBudget":
             const newBudget = JSON.parse(response.arguments).budget;
             updateMonthBudget(userData, newBudget, gptClient);
-            const budgetString: string = newBudget.toString();
-            const localResponse = await gptClient.commentBudget(
-              newBudget.toString(), // Ensure newBudget is a string
-              userData.language_code
-            );
-
-            ctx.reply(`${localResponse}`);
+            break;
           default:
             console.log("no action");
         }
