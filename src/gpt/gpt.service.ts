@@ -200,7 +200,7 @@ export default class GptClient {
     messages: { role: string; content: string }[],
     tools?: gptTool[],
     temperature?: number
-  ): Promise<string> {
+  ): Promise<string | { name: string; arguments: string }> {
     if (!this.apiKey) {
       throw new Error("API key is not defined");
     }
@@ -231,7 +231,10 @@ export default class GptClient {
     }
     if (tools) {
       try {
-        return data.choices[0].message.tool_calls[0].function;
+        return data.choices[0].message.tool_calls[0].function as {
+          name: string;
+          arguments: string;
+        };
       } catch (e) {
         return data.choices[0].message?.content;
       }

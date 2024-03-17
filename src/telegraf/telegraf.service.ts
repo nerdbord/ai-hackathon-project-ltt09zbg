@@ -44,7 +44,7 @@ async function handleStart(ctx: Context) {
     Number(userPayload.monthly_budget)
   );
   const botReply = response;
-  ctx.reply(botReply);
+  ctx.reply(typeof botReply === "string" ? botReply : JSON.stringify(botReply));
 
   //save user data to db
 
@@ -99,8 +99,7 @@ async function handleText(ctx: Context) {
 
     const response = await gptClient.commentBudget(userMessage, userData.language_code);
     const functionalities = await gptClient.provideFunctionality(userMessage);
-    console.log(functionalities);
-    ctx.reply(functionalities);
+    ctx.reply(typeof response === "string" ? response : JSON.stringify(response));
   } catch (error) {
     console.error("Błąd podczas komunikacji:", error);
     //ctx.reply("Przepraszam, coś poszło nie tak.");
