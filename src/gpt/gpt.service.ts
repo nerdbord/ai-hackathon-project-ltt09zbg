@@ -16,7 +16,12 @@ export default class GptClient {
   model = "gpt-3.5-turbo";
   endpoint = "https://training.nerdbord.io/api/v1/openai/chat/completions";
   apiKey = process.env["OPENAI_API_KEY"] || null;
-  userDataContext!: CreateUserPayload;
+  userDataContext: CreateUserPayload = {
+    chatId: 0,
+    first_name: "",
+    last_name: "",
+    language_code: "",
+  };
   basicContext = `You're user's good friend, he's trying to get rid of his addictions (drinking, smoking etc.), your goal is to help him to keep in control his addiction, and finally to reduce it to a minimum. If user exists you will recieve context data about him from database: ${this.userDataContext}`;
   // Funkcje służą do ekstrakcji z prompta usera danych by zwrócić JSON argumentów które funkcja mogłaby przyjąć w parametrach. (nie musi zwracać wszystkiego bo zależy co poda user)
   gptFunctions: { [key: string]: gptFunction } = {
